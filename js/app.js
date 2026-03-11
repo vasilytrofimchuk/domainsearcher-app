@@ -642,7 +642,7 @@ async function refreshAssociations() {
   if (btn) { btn.textContent = '⏳'; btn.style.opacity = '1'; btn.disabled = true }
   for (const d of favorites) { delete assocCache[d.id]; _loadedFavIds.delete(d.id) }
   const aiKey = loadSetting('aiApiKey') || undefined
-  const assocPrompt = loadSetting('assocPrompt') || undefined
+  const assocPrompt = document.getElementById('assocPromptBox')?.value || loadSetting('assocPrompt') || undefined
   try {
     const assocs = await associateDomains(favorites.map(d => d.domain), aiKey, assocPrompt)
     const updated = Object.keys(assocs).length
@@ -707,7 +707,7 @@ async function rescoreFit() {
   renderScores(favorites)
 
   const aiKey = loadSetting('aiApiKey') || undefined
-  const fitPrompt = loadSetting('fitPrompt') || undefined
+  const fitPrompt = document.getElementById('fitPromptBox')?.value || loadSetting('fitPrompt') || undefined
   try {
     const scores = await scoreFitBatch(favorites.map(d => d.domain), context, aiKey, fitPrompt)
     for (const d of favorites) {
