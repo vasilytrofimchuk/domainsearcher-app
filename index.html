@@ -102,6 +102,20 @@
                 <button onclick="addCustomCheckZone()" class="text-xs text-cyan-600 hover:text-cyan-800 font-medium">+</button>
               </div>
             </div>
+            <!-- Synonyms toggle -->
+            <div class="flex flex-wrap items-center gap-2 mt-3">
+              <button id="synonymsToggle" onclick="toggleSynonyms()"
+                class="text-xs px-3 py-1 rounded-full border border-gray-300 text-gray-500 hover:border-cyan-400 hover:text-cyan-600 transition-colors">
+                + synonyms
+              </button>
+              <div id="synonymsPromptControls" class="hidden flex items-center gap-2">
+                <button onclick="document.getElementById('synonymsPromptBox').classList.toggle('hidden')" class="text-xs text-cyan-500 hover:text-cyan-700">▾ prompt</button>
+                <button id="saveSynonymPromptBtn" onclick="saveSynonymPrompt(true)" class="hidden text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-2 py-0.5 rounded transition-colors">Save</button>
+                <button onclick="resetSynonymPrompt()" class="text-xs text-gray-300 hover:text-gray-500">reset</button>
+                <span id="synonymPromptSaved" class="text-xs text-green-500 hidden">saved</span>
+              </div>
+            </div>
+            <textarea id="synonymsPromptBox" rows="3" class="hidden mt-1 w-full border border-cyan-100 rounded-lg px-3 py-2 text-xs font-mono text-gray-600 focus:outline-none focus:ring-1 focus:ring-cyan-400 resize-y"></textarea>
             <div id="checkResult" class="mt-3 hidden"></div>
           </div>
 

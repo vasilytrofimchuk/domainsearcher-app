@@ -1,6 +1,6 @@
 import { db, saveSetting, loadSetting } from './storage.js'
 import { checkDomainAvailable, checkMultipleZones } from './check.js'
-import { generateDomainNames, scoreFitBatch, associateDomains, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT } from './generate.js'
+import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js'
 
 // Active search controller
 let _abortController = null
@@ -197,15 +197,25 @@ function addCustomCheckZone() {
 }
 
 // --- Quick check ---
+function _domainCheckRow(domain, available, recordId, favorite) {
+  const badge = available === true
+    ? '<span class="bg-green-100 text-green-700 text-sm font-medium px-3 py-1 rounded-full">Available</span>'
+    : available === false
+      ? '<span class="text-red-400 text-sm">Taken</span>'
+      : '<span class="text-yellow-500 text-sm" title="Check failed — RDAP returned an unexpected response">? Unknown</span>'
+  const nameClass = available === true ? 'text-green-700 font-semibold' : 'text-gray-400'
+  const favBtn = '<button onclick="toggleCheckFav(\'' + recordId + '\',this)" class="ml-2">' + starIcon(favorite) + '</button>'
+  const link = '<a href="https://' + domain + '" target="_blank" rel="noopener" class="font-mono ' + nameClass + ' hover:underline">' + domain + '</a>'
+  return '<div class="flex items-center gap-3 py-1">' + link + badge + favBtn + '</div>'
+}
+
 async function checkOne() {
   const input = document.getElementById('checkDomain')
   const raw = input.value.trim().toLowerCase()
-  // Detect if user typed a full domain (contains a dot after at least one char)
   const dotIdx = raw.indexOf('.')
   const hasZone = dotIdx > 0 && dotIdx < raw.length - 1
   let name, zones
   if (hasZone) {
-    // Use the exact domain as typed — split into stem + zone
     name = raw.slice(0, dotIdx).replace(/[^a-z0-9-]/g, '')
     zones = [raw.slice(dotIdx + 1)]
   } else {
@@ -213,32 +223,51 @@ async function checkOne() {
     zones = getCheckZones()
   }
   if (!name) return
+
+  const synonymsOn = document.getElementById('synonymsToggle')?.classList.contains('active')
   const resultDiv = document.getElementById('checkResult')
   resultDiv.classList.remove('hidden')
   resultDiv.innerHTML = '<span class="text-gray-400 text-sm">Checking ' + name + (zones.length > 1 ? ' across ' + zones.length + ' zones' : '.' + zones[0]) + '...</span>'
 
   if (typeof gtag !== 'undefined') gtag('event', 'quick_check', { domain_stem: name })
 
+  // Check the original name
   let html = ''
   for (const zone of zones) {
     const domain = name + '.' + zone
     resultDiv.innerHTML = '<span class="text-gray-400 text-sm">Checking ' + domain + '...</span>' + html
     const available = await checkDomainAvailable(domain)
     const record = db.upsert(domain, { domain, available }, { available })
-    const badge = available === true
-      ? '<span class="bg-green-100 text-green-700 text-sm font-medium px-3 py-1 rounded-full">Available</span>'
-      : available === false
-        ? '<span class="text-red-400 text-sm">Taken</span>'
-        : '<span class="text-yellow-500 text-sm" title="Check failed — RDAP returned an unexpected response">? Unknown</span>'
-    const nameClass = available === true ? 'text-green-700 font-semibold' : 'text-gray-400'
-    const favBtn = '<button onclick="toggleCheckFav(\'' + record.id + '\',this)" class="ml-2">'
-      + starIcon(record.favorite) + '</button>'
-    const domainLabel = '<a href="https://' + domain + '" target="_blank" rel="noopener" class="font-mono ' + nameClass + ' hover:underline">' + domain + '</a>'
-    html += '<div class="flex items-center gap-3 py-1">'
-      + domainLabel + badge + favBtn + '</div>'
+    html += _domainCheckRow(domain, available, record.id, record.favorite)
   }
   resultDiv.innerHTML = html
   loadSaved()
+
+  // Synonyms
+  if (synonymsOn) {
+    resultDiv.innerHTML = html + '<div class="text-xs text-cyan-500 mt-2 mb-1">generating synonyms...</div>'
+    const aiKey = loadSetting('aiApiKey') || undefined
+    const synonymPrompt = document.getElementById('synonymsPromptBox')?.value || loadSetting('synonymPrompt') || undefined
+    let synonyms = []
+    try { synonyms = await generateSynonyms(name, aiKey, synonymPrompt) } catch {}
+
+    if (synonyms.length) {
+      html += '<div class="text-xs text-cyan-500 font-medium mt-3 mb-1">synonyms of "' + name + '"</div>'
+      for (const syn of synonyms) {
+        for (const zone of zones) {
+          const domain = syn + '.' + zone
+          resultDiv.innerHTML = html + '<span class="text-gray-400 text-xs">checking ' + domain + '...</span>'
+          const available = await checkDomainAvailable(domain)
+          const record = db.upsert(domain, { domain, available }, { available })
+          html += _domainCheckRow(domain, available, record.id, record.favorite)
+        }
+      }
+    } else {
+      html += '<div class="text-xs text-gray-400 mt-2">no synonyms returned</div>'
+    }
+    resultDiv.innerHTML = html
+    loadSaved()
+  }
 }
 
 function toggleMenu(menuId) {
@@ -1153,6 +1182,48 @@ function saveFitPrompt(showConfirm) {
   }
 }
 
+let _savedSynonymPromptValue = ''
+function loadSynonymPrompt() {
+  const val = loadSetting('synonymPrompt')
+  _savedSynonymPromptValue = val || DEFAULT_SYNONYM_PROMPT
+  document.getElementById('synonymsPromptBox').value = _savedSynonymPromptValue
+  document.getElementById('synonymsPromptBox').addEventListener('input', () => {
+    const changed = document.getElementById('synonymsPromptBox').value !== _savedSynonymPromptValue
+    document.getElementById('saveSynonymPromptBtn').classList.toggle('hidden', !changed)
+  })
+  // Restore toggle state
+  if (loadSetting('synonymsOn')) {
+    document.getElementById('synonymsToggle')?.classList.add('active')
+    document.getElementById('synonymsToggle').style.cssText = 'background:#0891b2;color:#fff;border-color:#0891b2'
+    document.getElementById('synonymsPromptControls')?.classList.remove('hidden')
+  }
+}
+
+function toggleSynonyms() {
+  const btn = document.getElementById('synonymsToggle')
+  const on = !btn.classList.contains('active')
+  btn.classList.toggle('active', on)
+  btn.style.cssText = on ? 'background:#0891b2;color:#fff;border-color:#0891b2' : ''
+  document.getElementById('synonymsPromptControls').classList.toggle('hidden', !on)
+  saveSetting('synonymsOn', on)
+}
+
+function resetSynonymPrompt() {
+  document.getElementById('synonymsPromptBox').value = DEFAULT_SYNONYM_PROMPT
+  saveSynonymPrompt()
+}
+
+function saveSynonymPrompt(showConfirm) {
+  _savedSynonymPromptValue = document.getElementById('synonymsPromptBox').value
+  saveSetting('synonymPrompt', _savedSynonymPromptValue)
+  document.getElementById('saveSynonymPromptBtn').classList.add('hidden')
+  if (showConfirm) {
+    const el = document.getElementById('synonymPromptSaved')
+    el.classList.remove('hidden')
+    setTimeout(() => el.classList.add('hidden'), 2000)
+  }
+}
+
 function checkActiveSearch() {
   const job = loadSetting('activeSearch')
   if (!job) return
@@ -1247,6 +1318,7 @@ loadCheckZones()
 loadGenPrompt()
 loadAssocPrompt()
 loadFitPrompt()
+loadSynonymPrompt()
 loadAiKey()
 loadFitContext()
 loadDescription()
@@ -1285,6 +1357,9 @@ Object.assign(window, {
   resetAssocPrompt,
   saveFitPrompt,
   resetFitPrompt,
+  toggleSynonyms,
+  saveSynonymPrompt,
+  resetSynonymPrompt,
   toggleKeyInput,
   saveAiKey,
   clearAiKey,
