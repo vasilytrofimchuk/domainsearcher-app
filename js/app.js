@@ -32,9 +32,9 @@ function getCompareZones() {
 function removeZone(e, x) {
   e.stopPropagation()
   const btn = x.closest('button')
-  const isCompare = !!btn.closest('#compareZoneSelector')
-  btn.remove()
-  if (isCompare) saveCompareZones(); else saveSearchZones()
+  if (btn.closest('#compareZoneSelector')) { btn.remove(); saveCompareZones() }
+  else if (btn.closest('#checkZoneSelector')) { btn.remove(); saveCheckZones() }
+  else { btn.remove(); saveSearchZones() }
 }
 
 function _zoneLabel(zones) {
@@ -160,9 +160,34 @@ function getCheckZones() {
     .map(b => b.dataset.zone).filter(Boolean)
 }
 
+function saveCheckZones() {
+  saveSetting('checkZones', getZoneState('checkZoneSelector', 'zone-active'))
+}
+
+function loadCheckZones() {
+  const state = loadSetting('checkZones')
+  if (!state) return
+  const defaultZones = ['com', 'io', 'ai', 'app', 'co']
+  document.querySelectorAll('#checkZoneSelector [data-zone]').forEach(btn => {
+    if (defaultZones.includes(btn.dataset.zone))
+      btn.classList.toggle('zone-active', state.active.includes(btn.dataset.zone))
+  })
+  const container = document.getElementById('checkZoneSelector')
+  for (const z of (state.custom || [])) {
+    if (container.querySelector('[data-zone="' + z + '"]')) continue
+    const btn = document.createElement('button')
+    btn.dataset.zone = z
+    btn.onclick = function() { toggleCheckZone(this) }
+    btn.className = 'zone-tag' + (state.active.includes(z) ? ' zone-active' : '')
+    btn.innerHTML = '.' + z + zoneX()
+    container.insertBefore(btn, container.lastElementChild)
+  }
+}
+
 function toggleCheckZone(btn) {
   if (event.target.classList.contains('zone-x')) return
   btn.classList.toggle('zone-active')
+  saveCheckZones()
 }
 
 function addCustomCheckZone() {
@@ -178,6 +203,7 @@ function addCustomCheckZone() {
   btn.innerHTML = '.' + zone + zoneX()
   container.insertBefore(btn, container.lastElementChild)
   input.value = ''
+  saveCheckZones()
 }
 
 // --- Quick check ---
@@ -1159,6 +1185,7 @@ function loadAiKey() {
 loadWeights()
 loadSearchZones()
 loadCompareZones()
+loadCheckZones()
 loadGenPrompt()
 loadAssocPrompt()
 loadAiKey()
