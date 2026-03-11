@@ -389,6 +389,69 @@ function zonePillsHTML(zones, filterZones, name) {
   }).join(' ')
 }
 
+function scoreCard(s, rank) {
+  const { id, domain, scores, superFavorite: isSuper, available } = s
+  const medalColors = ['#eab308', '#9ca3af', '#d97706']
+  const medalLabel = rank < 3
+    ? '<span style="color:' + medalColors[rank] + ';font-weight:700;font-size:12px">#' + (rank + 1) + '</span>'
+    : '<span style="color:#d1d5db;font-size:12px">' + (rank + 1) + '.</span>'
+  const mx = scores.maxTotal || 70
+  const totalPct = Math.round(scores.total / mx * 100)
+  const totalColor = totalPct >= 67 ? '#15803d' : totalPct >= 47 ? '#a16207' : '#dc2626'
+  const totalBg   = totalPct >= 67 ? '#f0fdf4' : totalPct >= 47 ? '#fefce8' : '#fff1f2'
+  const nameColor = available ? '#166534' : '#6b7280'
+  const zones = zoneCache[id] || {}
+  const stem = domain.replace(/\.[a-z]+$/, '')
+  const pills = Object.keys(zones).length ? zonePillsHTML(zones, null, stem) : '<span style="color:#d1d5db;font-size:11px">checking zones…</span>'
+  const assocRaw = assocCache[id]
+  const assoc = Array.isArray(assocRaw) ? assocRaw.join(' · ') : (assocRaw || null)
+  const superBtn = '<button onclick="toggleSuper(\'' + id + '\')" title="Super favorite" style="font-size:18px;line-height:1;color:' + (isSuper ? '#f97316' : '#d1d5db') + '" onmouseover="this.style.color=\'#f97316\'" onmouseout="this.style.color=\'' + (isSuper ? '#f97316' : '#d1d5db') + '\'">&#9733;&#9733;</button>'
+  const starBtn  = '<button onclick="toggleFav(\'' + id + '\')" title="Remove from favorites" style="font-size:20px;line-height:1;color:#fbbf24" onmouseover="this.style.color=\'#f59e0b\'" onmouseout="this.style.color=\'#fbbf24\'">&#9733;</button>'
+  const delBtn   = '<button onclick="deleteDomain(\'' + id + '\',this)" title="Delete" style="font-size:15px;color:#d1d5db;padding:2px" onmouseover="this.style.color=\'#f87171\'" onmouseout="this.style.color=\'#d1d5db\'">&#x2715;</button>'
+
+  function miniBar(label, val) {
+    const pct = Math.round(val / 10 * 100)
+    const color = pct >= 70 ? '#4ade80' : pct >= 40 ? '#facc15' : '#fca5a5'
+    return '<div style="display:flex;align-items:center;gap:6px;min-width:0">'
+      + '<span style="font-size:10px;font-weight:700;color:#7c3aed;width:26px;flex-shrink:0">' + label + '</span>'
+      + '<div style="flex:1;background:#f3f4f6;border-radius:3px;height:6px;min-width:0">'
+      + '<div style="width:' + pct + '%;height:6px;border-radius:3px;background:' + color + '"></div></div>'
+      + '<span style="font-size:11px;font-family:monospace;color:#6b7280;width:14px;text-align:right">' + val + '</span>'
+      + '</div>'
+  }
+
+  return '<div style="background:' + (isSuper ? '#fff7ed' : 'white') + ';border:1.5px solid ' + (isSuper ? '#fed7aa' : '#e9d5ff') + ';border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px">'
+    // Header: rank + domain + actions
+    + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'
+    +   '<div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1">'
+    +     medalLabel
+    +     '<span style="font-family:monospace;font-weight:700;font-size:15px;color:' + nameColor + ';word-break:break-all">' + domain + '</span>'
+    +   '</div>'
+    +   '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">'
+    +     superBtn + starBtn + delBtn
+    +   '</div>'
+    + '</div>'
+    // Zones
+    + '<div id="zones-' + id + '" style="display:flex;flex-wrap:wrap;gap:4px">' + pills + '</div>'
+    // Association
+    + (assoc
+      ? '<div id="assoc-' + id + '" style="font-size:12px;font-style:italic;color:#6b7280;line-height:1.4">' + assoc + '</div>'
+      : '<div id="assoc-' + id + '" style="font-size:12px;color:#d1d5db">…</div>')
+    // Score grid
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 12px">'
+    +   miniBar('LEN', scores.len) + miniBar('PRO', scores.pro)
+    +   miniBar('MEM', scores.mem) + miniBar('BRD', scores.brd)
+    +   miniBar('ZON', scores.zon) + miniBar('FIT', scores.fit)
+    + '</div>'
+    // Total
+    + '<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">'
+    +   '<span style="font-size:11px;color:#a78bfa">TOTAL</span>'
+    +   '<span style="font-size:18px;font-weight:800;color:' + totalColor + ';background:' + totalBg + ';padding:2px 10px;border-radius:8px">' + scores.total + '</span>'
+    +   '<span style="font-size:11px;color:#d1d5db">/' + mx + '</span>'
+    + '</div>'
+    + '</div>'
+}
+
 function scoreRow(s, rank) {
   const { id, domain, scores, superFavorite: isSuper, available } = s
   const medalColors = ['text-yellow-500', 'text-gray-400', 'text-amber-600']
@@ -583,6 +646,7 @@ function renderScores(favorites) {
   const superCount = favorites.filter(d => d.superFavorite).length
   document.getElementById('favCount').textContent = favorites.length + (superCount ? ' ★★' + superCount : '')
   scoreBody.innerHTML = scored.map((s, i) => scoreRow(s, i)).join('')
+  document.getElementById('scoreCards').innerHTML = scored.map((s, i) => scoreCard(s, i)).join('')
   scoreSection.classList.remove('hidden')
 }
 
