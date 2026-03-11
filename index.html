@@ -75,7 +75,19 @@
                 Check
               </button>
             </div>
-            <p id="checkZoneLabel" class="mt-1.5 text-xs text-gray-400">.ai</p>
+            <div class="flex flex-wrap items-center gap-1.5 mt-3" id="checkZoneSelector">
+              <button onclick="toggleCheckZone(this)" data-zone="com" class="zone-tag zone-active">.com <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <button onclick="toggleCheckZone(this)" data-zone="io" class="zone-tag zone-active">.io <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <button onclick="toggleCheckZone(this)" data-zone="ai" class="zone-tag zone-active">.ai <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <button onclick="toggleCheckZone(this)" data-zone="app" class="zone-tag">.app <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <button onclick="toggleCheckZone(this)" data-zone="co" class="zone-tag">.co <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <div class="flex items-center gap-1">
+                <span class="text-gray-400 text-sm">.</span>
+                <input id="customCheckZone" type="text" placeholder="custom" class="w-20 text-sm border border-gray-300 rounded px-2 py-1 font-mono focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  onkeydown="if(event.key==='Enter'){addCustomCheckZone()}">
+                <button onclick="addCustomCheckZone()" class="text-xs text-cyan-600 hover:text-cyan-800 font-medium">+</button>
+              </div>
+            </div>
             <div id="checkResult" class="mt-3 hidden"></div>
           </div>
 
