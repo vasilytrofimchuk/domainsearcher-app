@@ -199,12 +199,23 @@ function addCustomCheckZone() {
 // --- Quick check ---
 async function checkOne() {
   const input = document.getElementById('checkDomain')
-  const zones = getCheckZones()
-  const name = input.value.trim().toLowerCase().replace(/\.[a-z]+$/, '').replace(/[^a-z0-9]/g, '')
+  const raw = input.value.trim().toLowerCase()
+  // Detect if user typed a full domain (contains a dot after at least one char)
+  const dotIdx = raw.indexOf('.')
+  const hasZone = dotIdx > 0 && dotIdx < raw.length - 1
+  let name, zones
+  if (hasZone) {
+    // Use the exact domain as typed — split into stem + zone
+    name = raw.slice(0, dotIdx).replace(/[^a-z0-9-]/g, '')
+    zones = [raw.slice(dotIdx + 1)]
+  } else {
+    name = raw.replace(/[^a-z0-9-]/g, '')
+    zones = getCheckZones()
+  }
   if (!name) return
   const resultDiv = document.getElementById('checkResult')
   resultDiv.classList.remove('hidden')
-  resultDiv.innerHTML = '<span class="text-gray-400 text-sm">Checking ' + name + ' across ' + zones.length + ' zone' + (zones.length > 1 ? 's' : '') + '...</span>'
+  resultDiv.innerHTML = '<span class="text-gray-400 text-sm">Checking ' + name + (zones.length > 1 ? ' across ' + zones.length + ' zones' : '.' + zones[0]) + '...</span>'
 
   if (typeof gtag !== 'undefined') gtag('event', 'quick_check', { domain_stem: name })
 
@@ -213,7 +224,7 @@ async function checkOne() {
     const domain = name + '.' + zone
     resultDiv.innerHTML = '<span class="text-gray-400 text-sm">Checking ' + domain + '...</span>' + html
     const available = await checkDomainAvailable(domain)
-    const record = db.upsert(domain, { domain, available: available === true }, { available: available === true })
+    const record = db.upsert(domain, { domain, available }, { available })
     const badge = available === true
       ? '<span class="bg-green-100 text-green-700 text-sm font-medium px-3 py-1 rounded-full">Available</span>'
       : available === false
