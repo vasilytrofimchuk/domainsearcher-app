@@ -210,6 +210,16 @@
                   </div>
                 </div>
               </div>
+              <!-- Association prompt (collapsible) -->
+              <div class="mt-2">
+                <div class="flex items-center gap-3">
+                  <button onclick="document.getElementById('assocPromptBox').classList.toggle('hidden')" class="text-xs text-purple-400 hover:text-purple-600">&#9660; association prompt</button>
+                  <button id="saveAssocPromptBtn" onclick="saveAssocPrompt(true)" class="hidden text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold px-3 py-1 rounded-lg transition-colors">Save prompt</button>
+                  <button onclick="resetAssocPrompt()" class="text-xs text-gray-300 hover:text-gray-500">reset default</button>
+                  <span id="assocPromptSaved" class="text-xs text-green-500 hidden">saved</span>
+                </div>
+                <textarea id="assocPromptBox" rows="5" class="hidden mt-1 w-full border border-purple-100 rounded-lg px-3 py-2 text-xs font-mono text-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-400 resize-y"></textarea>
+              </div>
             </div>
             <div class="overflow-x-auto">
               <table id="scoreTable" class="w-full text-sm">
@@ -280,6 +290,50 @@
     </div><!-- /flex -->
   </div>
 
+  <!-- Footer -->
+  <footer class="mt-10 border-t border-gray-200 bg-white">
+    <div class="w-full max-w-[1800px] mx-auto px-4 lg:px-8 py-6">
+      <!-- Privacy notice -->
+      <div class="flex flex-wrap items-center gap-3 mb-4 px-4 py-3 bg-gray-50 rounded-xl text-sm text-gray-500 border border-gray-100">
+        <span class="text-base">🔒</span>
+        <span><strong class="text-gray-700">100% private.</strong> All your data stays in your browser (localStorage). Nothing is sent to our servers — only direct AI API calls to Groq/OpenAI/Anthropic and availability checks to rdap.org.</span>
+        <span class="text-gray-300">·</span>
+        <span class="text-base">🌐</span>
+        <span><strong class="text-gray-700">Open source.</strong> <a href="https://github.com/vasilytrofimchuk/domainsearcher-app" target="_blank" rel="noopener" class="text-cyan-600 hover:underline">View code on GitHub</a></span>
+      </div>
+      <!-- Links row -->
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-4 text-sm text-gray-400">
+          <a href="/privacy.html" class="hover:text-gray-600">Privacy Policy</a>
+          <span>·</span>
+          <a href="/terms.html" class="hover:text-gray-600">Terms of Use</a>
+          <span>·</span>
+          <a href="https://github.com/vasilytrofimchuk/domainsearcher-app" target="_blank" rel="noopener" class="hover:text-gray-600">GitHub</a>
+        </div>
+        <!-- GitHub Star button -->
+        <a href="https://github.com/vasilytrofimchuk/domainsearcher-app" target="_blank" rel="noopener"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors">
+          <svg height="16" viewBox="0 0 16 16" width="16" fill="currentColor"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>
+          Star on GitHub
+          <span id="ghStars" class="bg-gray-700 text-gray-200 text-xs px-1.5 py-0.5 rounded hidden"></span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
   <script type="module" src="js/app.js"></script>
+  <script>
+    // Fetch GitHub star count
+    fetch('https://api.github.com/repos/vasilytrofimchuk/domainsearcher-app')
+      .then(r => r.json())
+      .then(d => {
+        if (d.stargazers_count != null) {
+          const el = document.getElementById('ghStars')
+          el.textContent = d.stargazers_count
+          el.classList.remove('hidden')
+        }
+      })
+      .catch(() => {})
+  </script>
 </body>
 </html>
