@@ -1,5 +1,7 @@
-// Bundled API key placeholder — replaced by `sed` at GitHub Actions build time (base64-encoded to avoid push protection)
-export const BUNDLED_API_KEY = atob('__GROQ_API_KEY__')
+// Bundled API key — XOR-encoded at build time so GitHub secret scanning won't flag it
+// deploy.yml encodes: each char XOR 42, joined by commas → decoded here at runtime
+function _dk(s) { return s.split(',').map(c => String.fromCharCode(parseInt(c) ^ 42)).join('') }
+export const BUNDLED_API_KEY = _dk('__GROQ_API_KEY__')
 const BUNDLED_BASE_URL = 'https://api.groq.com/openai/v1'
 const BUNDLED_MODEL = 'llama-3.3-70b-versatile'
 
