@@ -1,0 +1,36 @@
+# Startup Domain Search
+
+> Free AI-powered domain name generator and availability checker for startups.
+> URL: https://domainsearcher.app
+
+## What it does
+
+Given a description of your startup idea, it:
+1. Generates 60 domain name candidates using AI (Groq/OpenAI/Anthropic)
+2. Checks availability across multiple TLDs (.com, .io, .ai, .app, .dev, .co, etc.) via RDAP
+3. Scores each name on: Length (LEN), Pronounceability (PRO), Memorability (MEM), Brandability (BRD), and AI Fit (FIT)
+4. Lets you favorite, star, and save shortlists
+
+## Usage
+
+Open https://domainsearcher.app in a browser. Uses Groq (free tier) by default — no key required. Optionally set your own API key for OpenAI or Anthropic in the Settings panel.
+
+## Domain Checking (no auth required)
+
+Domain availability is checked via RDAP protocol at rdap.org:
+- Available: GET https://rdap.org/domain/{domain} returns HTTP 404
+- Taken: returns HTTP 200
+
+AI agents can call rdap.org directly to check individual domains — no API key or authentication required.
+
+## Scoring System
+
+Each domain name is scored on six dimensions (0–10 each), combined into a weighted TOTAL:
+- **LEN**: Length score — 5 chars = 10, shorter/longer scores drop off
+- **PRO**: Pronounceability — based on syllable count and consonant cluster analysis
+- **MEM**: Memorability — penalizes generic suffixes (-er, -or), rewards distinctive endings
+- **BRD**: Brandability — rewards invented/coined words, penalizes generic compounds
+- **ZON**: Zone score — fraction of selected comparison TLDs that are available
+- **FIT**: AI-scored relevance to your app idea description (requires context input)
+
+Weights for each dimension are adjustable by the user.

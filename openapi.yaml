@@ -1,0 +1,39 @@
+openapi: 3.0.0
+info:
+  title: Startup Domain Search
+  description: |
+    Check startup domain availability via RDAP. No authentication required.
+    HTTP 404 = domain is available for registration.
+    HTTP 200 = domain is taken.
+    This tool uses rdap.org as its domain availability backend.
+  version: 1.0.0
+servers:
+  - url: https://rdap.org
+    description: RDAP public registry (CORS-enabled, no auth required)
+paths:
+  /domain/{domain}:
+    get:
+      operationId: checkDomainAvailability
+      summary: Check if a domain is available for registration
+      description: |
+        Returns HTTP 404 if the domain is available (not registered).
+        Returns HTTP 200 with RDAP JSON if the domain is taken.
+        Works for all major TLDs including .com, .io, .ai, .app, .dev, .co, .net, .org, etc.
+      parameters:
+        - name: domain
+          in: path
+          required: true
+          description: Full domain name including TLD (e.g. "example.com", "myapp.ai")
+          schema:
+            type: string
+            example: "example.com"
+      responses:
+        '404':
+          description: Domain is available for registration
+        '200':
+          description: Domain is taken — response body contains RDAP registration data
+          content:
+            application/json:
+              schema:
+                type: object
+                description: RDAP domain registration record

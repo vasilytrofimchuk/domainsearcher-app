@@ -1,0 +1,1034 @@
+import { db, saveSetting, loadSetting } from './storage.js'
+import { checkDomainAvailable, checkMultipleZones } from './check.js'
+import { generateDomainNames, scoreFitBatch, associateDomains, detectProvider, DEFAULT_SYSTEM_PROMPT } from './generate.js'
+
+// Active search controller
+let _abortController = null
+
+// Zone cache, fit cache, association cache for scoring
+let zoneCache = {}
+let fitCache = {}
+let assocCache = {}
+
+// Active search state (stored in localStorage for resume)
+let _activeSearch = null
+
+// --- Zone selector (multi-select) ---
+function getSelectedZones() {
+  const active = Array.from(document.querySelectorAll('#zoneSelector .zone-active'))
+    .map(el => el.dataset.zone)
+  return active.length ? active : ['ai']
+}
+
+function getCompareZones() {
+  return Array.from(document.querySelectorAll('#compareZoneSelector .zone-compare-active'))
+    .map(el => el.dataset.zone)
+}
+
+function removeZone(e, x) {
+  e.stopPropagation()
+  const btn = x.closest('button')
+  const isCompare = !!btn.closest('#compareZoneSelector')
+  btn.remove()
+  if (isCompare) saveCompareZones(); else saveSearchZones()
+}
+
+function zoneX() {
+  return '<span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span>'
+}
+
+function toggleSearchZone(btn) {
+  btn.classList.toggle('zone-active')
+  const zones = getSelectedZones()
+  document.getElementById('checkZoneLabel').textContent = zones.map(z => '.' + z).join(', ')
+  saveSearchZones()
+}
+
+function toggleCompareZone(btn) {
+  btn.classList.toggle('zone-compare-active')
+  saveCompareZones()
+}
+
+function addCustomZone() {
+  const input = document.getElementById('customZone')
+  const zone = input.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+  if (!zone) return
+  const existing = document.querySelector('#zoneSelector [data-zone="' + zone + '"]')
+  if (existing) { toggleSearchZone(existing); input.value = ''; return }
+  const btn = document.createElement('button')
+  btn.onclick = function(e) { if (!e.target.classList.contains('zone-x')) toggleSearchZone(this) }
+  btn.dataset.zone = zone
+  btn.className = 'zone-tag zone-active'
+  btn.innerHTML = '.' + zone + zoneX()
+  const container = document.getElementById('zoneSelector')
+  container.insertBefore(btn, container.lastElementChild)
+  document.getElementById('checkZoneLabel').textContent = getSelectedZones().map(z => '.' + z).join(', ')
+  input.value = ''
+  saveSearchZones()
+}
+
+function addCustomCompareZone() {
+  const input = document.getElementById('customCompareZone')
+  const zone = input.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+  if (!zone) return
+  const existing = document.querySelector('#compareZoneSelector [data-zone="' + zone + '"]')
+  if (existing) { existing.classList.add('zone-compare-active'); input.value = ''; return }
+  const btn = document.createElement('button')
+  btn.onclick = function(e) { if (!e.target.classList.contains('zone-x')) toggleCompareZone(this) }
+  btn.dataset.zone = zone
+  btn.className = 'zone-tag zone-compare-active'
+  btn.innerHTML = '.' + zone + zoneX()
+  const container = document.getElementById('compareZoneSelector')
+  container.insertBefore(btn, container.lastElementChild)
+  input.value = ''
+  saveCompareZones()
+}
+
+function getZoneState(selectorId, activeClass) {
+  const all = Array.from(document.querySelectorAll('#' + selectorId + ' [data-zone]'))
+  const defaultZones = ['ai', 'com', 'io', 'app', 'dev', 'co', 'email', 'to', 'direct']
+  return {
+    active: all.filter(b => b.classList.contains(activeClass)).map(b => b.dataset.zone),
+    custom: all.filter(b => !defaultZones.includes(b.dataset.zone)).map(b => b.dataset.zone),
+  }
+}
+
+function saveSearchZones() {
+  const state = getZoneState('zoneSelector', 'zone-active')
+  saveSetting('searchZones', state)
+}
+
+function saveCompareZones() {
+  const state = getZoneState('compareZoneSelector', 'zone-compare-active')
+  saveSetting('compareZones', state)
+}
+
+function loadSearchZones() {
+  const state = loadSetting('searchZones')
+  if (!state) return
+  const defaultZones = ['ai', 'com', 'io', 'app', 'dev', 'co', 'email', 'to', 'direct']
+  document.querySelectorAll('#zoneSelector [data-zone]').forEach(btn => {
+    const z = btn.dataset.zone
+    if (defaultZones.includes(z)) {
+      btn.classList.toggle('zone-active', state.active.includes(z))
+    }
+  })
+  const container = document.getElementById('zoneSelector')
+  for (const z of (state.custom || [])) {
+    if (document.querySelector('#zoneSelector [data-zone="' + z + '"]')) continue
+    const btn = document.createElement('button')
+    btn.onclick = function(e) { if (!e.target.classList.contains('zone-x')) toggleSearchZone(this) }
+    btn.dataset.zone = z
+    btn.className = 'zone-tag' + (state.active.includes(z) ? ' zone-active' : '')
+    btn.innerHTML = '.' + z + zoneX()
+    container.insertBefore(btn, container.lastElementChild)
+  }
+  document.getElementById('checkZoneLabel').textContent = getSelectedZones().map(z => '.' + z).join(', ')
+}
+
+function loadCompareZones() {
+  const state = loadSetting('compareZones')
+  if (!state) return
+  const defaultZones = ['com', 'io', 'app', 'dev', 'co', 'email', 'to', 'direct', 'ai']
+  document.querySelectorAll('#compareZoneSelector [data-zone]').forEach(btn => {
+    const z = btn.dataset.zone
+    if (defaultZones.includes(z)) {
+      btn.classList.toggle('zone-compare-active', state.active.includes(z))
+    }
+  })
+  const container = document.getElementById('compareZoneSelector')
+  for (const z of (state.custom || [])) {
+    if (document.querySelector('#compareZoneSelector [data-zone="' + z + '"]')) continue
+    const btn = document.createElement('button')
+    btn.onclick = function(e) { if (!e.target.classList.contains('zone-x')) toggleCompareZone(this) }
+    btn.dataset.zone = z
+    btn.className = 'zone-tag' + (state.active.includes(z) ? ' zone-compare-active' : '')
+    btn.innerHTML = '.' + z + zoneX()
+    container.insertBefore(btn, container.lastElementChild)
+  }
+}
+
+// --- Quick check ---
+async function checkOne() {
+  const input = document.getElementById('checkDomain')
+  const zones = getSelectedZones()
+  const name = input.value.trim().toLowerCase().replace(/\.[a-z]+$/, '').replace(/[^a-z0-9]/g, '')
+  if (!name) return
+  const resultDiv = document.getElementById('checkResult')
+  resultDiv.classList.remove('hidden')
+  resultDiv.innerHTML = '<span class="text-gray-400 text-sm">Checking ' + name + ' across ' + zones.length + ' zone' + (zones.length > 1 ? 's' : '') + '...</span>'
+
+  if (typeof gtag !== 'undefined') gtag('event', 'quick_check', { domain_stem: name })
+
+  let html = ''
+  for (const zone of zones) {
+    const domain = name + '.' + zone
+    resultDiv.innerHTML = '<span class="text-gray-400 text-sm">Checking ' + domain + '...</span>' + html
+    const available = await checkDomainAvailable(domain)
+    const record = db.upsert(domain, { domain, available }, { available })
+    const badge = available
+      ? '<span class="bg-green-100 text-green-700 text-sm font-medium px-3 py-1 rounded-full">Available</span>'
+      : '<span class="text-red-400 text-sm">Taken</span>'
+    const nameClass = available ? 'text-green-700 font-semibold' : 'text-gray-400'
+    const favBtn = '<button onclick="toggleCheckFav(\'' + record.id + '\',this)" class="ml-2">'
+      + starIcon(record.favorite) + '</button>'
+    html += '<div class="flex items-center gap-3 py-1">'
+      + '<span class="font-mono ' + nameClass + '">' + domain + '</span>'
+      + badge + favBtn + '</div>'
+  }
+  resultDiv.innerHTML = html
+  loadSaved()
+}
+
+function toggleMenu(menuId) {
+  const menu = document.getElementById(menuId)
+  if (!menu) return
+  const isOpen = !menu.classList.contains('hidden')
+  document.querySelectorAll('.domain-menu').forEach(m => m.classList.add('hidden'))
+  if (!isOpen) {
+    menu.classList.remove('hidden')
+    const close = (e) => { if (!menu.contains(e.target) && e.target.getAttribute('data-menu') !== menuId) { menu.classList.add('hidden'); document.removeEventListener('click', close) } }
+    setTimeout(() => document.addEventListener('click', close), 0)
+  }
+}
+
+function starIcon(filled) {
+  return filled
+    ? '<span class="cursor-pointer text-yellow-400 hover:text-yellow-500 text-lg">&#9733;</span>'
+    : '<span class="cursor-pointer text-gray-300 hover:text-yellow-400 text-lg">&#9734;</span>'
+}
+
+function doubleStarIcon(isSuper) {
+  return isSuper
+    ? '<span class="cursor-pointer text-orange-500 hover:text-orange-600 text-lg font-bold">&#9733;&#9733;</span>'
+    : '<span class="cursor-pointer text-gray-300 hover:text-orange-400 text-lg">&#9733;&#9733;</span>'
+}
+
+function toggleCheckFav(id, btn) {
+  const record = db.toggleFavorite(id)
+  if (record) btn.innerHTML = starIcon(record.favorite)
+  loadSaved()
+}
+
+function toggleFav(id) {
+  db.toggleFavorite(id)
+  loadSaved()
+}
+
+function toggleSuper(id) {
+  db.toggleSuper(id)
+  loadSaved()
+}
+
+function domainRow(d, opts = {}) {
+  const badge = opts.noBadge ? '' : (d.available
+    ? '<span class="text-green-600 text-xs font-medium">✓</span>'
+    : '<span class="text-red-300 text-xs">✗</span>')
+  const star = '<button onclick="toggleFav(\'' + d.id + '\')">' + starIcon(d.favorite) + '</button>'
+  const superStar = opts.showSuper
+    ? '<button onclick="toggleSuper(\'' + d.id + '\')" title="Super favorite">' + doubleStarIcon(d.superFavorite) + '</button>'
+    : ''
+  const del = opts.showDelete
+    ? '<button onclick="deleteDomain(\'' + d.id + '\',this)" class="text-gray-300 hover:text-red-400 text-xs ml-1">x</button>'
+    : ''
+  const desc = opts.showDesc && d.description
+    ? '<span class="text-xs text-gray-400 ml-3">' + d.description.slice(0, 40) + '</span>'
+    : ''
+  const nameClass = d.available ? (opts.bold ? 'text-green-800 font-semibold' : 'text-green-700 font-semibold text-sm') : 'text-gray-400 text-sm'
+  const rowBg = d.superFavorite && opts.showSuper ? ' bg-orange-50' : ''
+  const zonesId = opts.showZones ? 'zones-' + d.id : ''
+  const zonesRow = opts.showZones
+    ? '<div id="' + zonesId + '" class="px-6 pb-2 text-xs text-gray-400">checking other zones...</div>'
+    : ''
+  return '<div class="' + (opts.compact ? 'px-3' : 'px-6') + rowBg + ' ' + (opts.compact ? 'py-2' : 'pt-3 ' + (opts.showZones ? 'pb-1' : 'pb-3')) + '">'
+    + '<div class="flex items-center justify-between">'
+    + '<div><span class="font-mono ' + nameClass + '">' + d.domain + '</span>' + desc + '</div>'
+    + '<div class="flex items-center gap-2">' + superStar + star + badge + del + '</div>'
+    + '</div></div>' + zonesRow
+}
+
+// --- Scoring functions ---
+function scoreLength(name) {
+  const len = name.length
+  if (len === 5) return 10
+  if (len === 4) return 9
+  if (len === 6) return 8
+  if (len === 3) return 7
+  if (len === 7) return 6
+  if (len === 8) return 4
+  if (len === 9) return 2
+  if (len === 10) return 1
+  return 0
+}
+
+function scorePronounceable(name) {
+  if (/[^a-z0-9]/.test(name)) return 1
+  let score = 7
+  const syllables = (name.match(/[aeiouy]+/g) || []).length
+  if (syllables === 2) score += 3
+  else if (syllables === 1) score += 1
+  else if (syllables === 3) score += 1
+  if (syllables === 0) score -= 4
+  score -= (name.match(/[^aeiouy]{3,}/g) || []).reduce((s, c) => s + (c.length - 2) * 2, 0)
+  score -= (name.match(/[aeiouy]{3,}/g) || []).length * 2
+  if (/([^aeiouy])\1/.test(name)) score -= 1
+  if (/[0-9]/.test(name)) score -= 3
+  return Math.max(0, Math.min(10, Math.round(score)))
+}
+
+function scoreMemorability(name) {
+  let score = 6
+  if (name.length <= 5) score += 2
+  else if (name.length <= 7) score += 1
+  if (name.length >= 5 && /er$/.test(name)) score -= 4
+  if (/^(over|under|after|before|into|using|along|direct|post|mail|send|get|set|from|inbox|outbox|client|server|agent|proxy|relay|notify|message)$/.test(name)) score -= 4
+  if (/[0-9]/.test(name)) score -= 2
+  if (!/er$|or$|ing$/.test(name) && /x$|ex$|ix$|ax$|ify$|io$|ze$|ly$/.test(name)) score += 1
+  return Math.max(0, Math.min(10, Math.round(score)))
+}
+
+function scoreBrandability(name) {
+  const n = name.toLowerCase()
+  let score = 4
+  if (n.length >= 5 && /er$/.test(n)) {
+    score += 0
+  } else if (/^(over|under|after|before|into|using|along|direct|post|mail|send|inbox|outbox|client|server|agent|proxy|relay|message|notify|with|from)$/.test(n)) {
+    score -= 2
+  } else if (/^(get|set|run|send|mail|post|use|put|add|out|top)(box|hub|lab|app|net|web|base|core|mail|out|go|up|in|all|pro|fast)$/.test(n)) {
+    score += 1
+  } else {
+    score += 4
+  }
+  const vr = (n.match(/[aeiouy]/g) || []).length / n.length
+  if (vr >= 0.25 && vr <= 0.55) score += 1
+  if (!/er$|or$/.test(n) && /[aeiouxzln]$/.test(n)) score += 1
+  if (n.length >= 4 && n.length <= 7) score += 1
+  if (/[0-9]/.test(n)) score -= 3
+  return Math.max(0, Math.min(10, Math.round(score)))
+}
+
+function scoreZones(zones) {
+  if (!zones) return 0
+  const compareZones = getCompareZones()
+  const relevant = compareZones.length ? compareZones.filter(z => z in zones) : Object.keys(zones)
+  const freeCount = relevant.filter(z => zones[z]).length
+  const total = relevant.length || 1
+  return Math.round(freeCount / total * 10)
+}
+
+function getWeights() {
+  const n = id => { const el = document.getElementById(id); return el ? Math.max(0, parseFloat(el.value) || 0) : 1 }
+  return { len: n('wLen'), pro: n('wPro'), mem: n('wMem'), brd: n('wBrd'), zon: n('wZon'), fit: n('wFit') }
+}
+
+function scoreDomain(name, zones, fit) {
+  const len = scoreLength(name)
+  const pro = scorePronounceable(name)
+  const mem = scoreMemorability(name)
+  const brd = scoreBrandability(name)
+  const zon = scoreZones(zones)
+  const f = fit ?? 0
+  const w = getWeights()
+  const total = Math.round(len * w.len + pro * w.pro + mem * w.mem + brd * w.brd + zon * w.zon + f * w.fit)
+  const maxTotal = (w.len + w.pro + w.mem + w.brd + w.zon + w.fit) * 10
+  return { len, pro, mem, brd, zon, fit: f, total, maxTotal }
+}
+
+function scoreBar(val, max) {
+  const pct = Math.round(val / max * 100)
+  const color = pct >= 70 ? 'bg-green-400' : pct >= 40 ? 'bg-yellow-400' : 'bg-red-300'
+  return '<div style="width:100%;background:#f3f4f6;border-radius:3px;height:6px"><div class="' + color + '" style="width:' + pct + '%;height:6px;border-radius:3px"></div></div>'
+    + '<div class="text-center text-xs font-mono" style="margin-top:1px;font-size:10px">' + val + '</div>'
+}
+
+function zonePillsHTML(zones, filterZones, name) {
+  const compareZones = filterZones || getCompareZones()
+  const entries = compareZones.length
+    ? compareZones.filter(z => z in zones).map(z => [z, zones[z]])
+    : Object.entries(zones)
+  if (!entries.length) return ''
+  return entries.map(([z, avail]) => {
+    const url = name ? 'https://' + name + '.' + z : null
+    const link = url ? ' href="' + url + '" target="_blank" rel="noopener"' : ''
+    const tag = url ? 'a' : 'span'
+    return avail
+      ? '<' + tag + link + ' style="background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:3px;font-size:10.5px;font-family:monospace;font-weight:600;text-decoration:none;cursor:pointer">.' + z + '</' + tag + '>'
+      : '<' + tag + link + ' style="background:#f1f5f9;color:#94a3b8;padding:1px 6px;border-radius:3px;font-size:10.5px;font-family:monospace;text-decoration:none;cursor:pointer">.' + z + '</' + tag + '>'
+  }).join(' ')
+}
+
+function scoreRow(s, rank) {
+  const { id, domain, scores, superFavorite: isSuper, available } = s
+  const medalColors = ['text-yellow-500', 'text-gray-400', 'text-amber-600']
+  const medal = rank < 3 ? '<span class="' + medalColors[rank] + ' font-bold text-xs mr-0.5">#' + (rank + 1) + '</span>' : '<span class="text-gray-300 text-xs mr-0.5">' + (rank + 1) + '.</span>'
+  const mx = scores.maxTotal || 70
+  const totalColor = scores.total >= mx * 0.67 ? 'text-green-700 bg-green-50' : scores.total >= mx * 0.47 ? 'text-yellow-700 bg-yellow-50' : 'text-red-600 bg-red-50'
+  const rowBg = isSuper ? ' bg-orange-50' : ''
+  const nameColor = available ? 'text-green-800' : 'text-gray-500'
+  const zones = zoneCache[id] || {}
+  const stem = domain.replace(/\.[a-z]+$/, '')
+  const pills = Object.keys(zones).length ? zonePillsHTML(zones, null, stem) : '<span class="text-gray-300 text-xs">checking...</span>'
+  const superBtn = '<button onclick="toggleSuper(\'' + id + '\')" title="Super favorite" style="font-size:16px;line-height:1;color:' + (isSuper ? '#f97316' : '#d1d5db') + '" onmouseover="this.style.color=\'#f97316\'" onmouseout="this.style.color=\'' + (isSuper ? '#f97316' : '#d1d5db') + '\'">&#9733;&#9733;</button>'
+  const starBtn = '<button onclick="toggleFav(\'' + id + '\')" title="Remove from favorites" style="font-size:18px;line-height:1;color:#fbbf24" onmouseover="this.style.color=\'#f59e0b\'" onmouseout="this.style.color=\'#fbbf24\'">&#9733;</button>'
+  const delBtn = '<button onclick="deleteDomain(\'' + id + '\',this)" title="Delete" style="font-size:14px;font-weight:bold;color:#d1d5db" onmouseover="this.style.color=\'#f87171\'" onmouseout="this.style.color=\'#d1d5db\'">&#x2715;</button>'
+  const assocRaw = assocCache[id]
+  const assoc = Array.isArray(assocRaw) ? assocRaw.join(' · ') : (assocRaw || null)
+  return '<tr class="hover:bg-purple-25' + rowBg + '">'
+    + '<td class="px-3 py-2" style="width:160px">'
+    + '<div class="flex items-center gap-1 flex-wrap">' + medal + '<span class="font-mono font-semibold ' + nameColor + '">' + domain + '</span></div>'
+    + '</td>'
+    + '<td class="px-2 py-2" style="width:210px">'
+    + '<div id="zones-' + id + '" class="flex flex-wrap gap-1">' + pills + '</div>'
+    + '</td>'
+    + '<td class="px-2 py-2">'
+    + '<div id="assoc-' + id + '" class="text-sm italic ' + (assoc ? 'text-gray-500' : 'text-gray-300') + '" style="line-height:1.35;white-space:normal">' + (assoc || '…') + '</div>'
+    + '</td>'
+    + '<td class="py-2" style="width:52px">' + scoreBar(scores.len, 10) + '</td>'
+    + '<td class="py-2" style="width:52px">' + scoreBar(scores.pro, 10) + '</td>'
+    + '<td class="py-2" style="width:52px">' + scoreBar(scores.mem, 10) + '</td>'
+    + '<td class="py-2" style="width:52px">' + scoreBar(scores.brd, 10) + '</td>'
+    + '<td class="py-2" style="width:52px">' + scoreBar(scores.zon, 10) + '</td>'
+    + '<td class="py-2" style="width:52px">' + scoreBar(scores.fit, 10) + '</td>'
+    + '<td class="py-2 text-center" style="width:70px"><span class="font-bold text-base ' + totalColor + ' px-1.5 py-0.5 rounded">' + scores.total + '</span><div class="text-xs text-gray-400">/' + mx + '</div></td>'
+    + '<td class="py-2" style="width:80px">' + scoreBar(scores.total, mx) + '</td>'
+    + '<td class="px-2 py-2 text-center whitespace-nowrap" style="min-width:90px">'
+    + '<div class="flex items-center justify-center gap-2">' + superBtn + starBtn + delBtn + '</div>'
+    + '</td>'
+    + '</tr>'
+}
+
+function renderZonePills(el, zones, filterZones, name) {
+  el.innerHTML = '<div class="flex flex-wrap gap-1">' + zonePillsHTML(zones, filterZones, name) + '</div>'
+}
+
+async function loadFavData(favorites) {
+  const compareZones = getCompareZones()
+  const needZonesFetch = []
+  const needFit = []
+
+  for (const d of favorites) {
+    const cached = d.zones ? JSON.parse(d.zones) : {}
+    zoneCache[d.id] = cached
+
+    const missing = compareZones.filter(z => !(z in cached))
+    if (missing.length) needZonesFetch.push({ d, missing })
+
+    if (d.fitScore != null) {
+      fitCache[d.id] = d.fitScore
+    } else {
+      needFit.push(d)
+    }
+
+    if (d.association) {
+      try { assocCache[d.id] = JSON.parse(d.association) } catch { assocCache[d.id] = [d.association] }
+    }
+  }
+
+  const descriptions = [...new Set(favorites.map(d => d.description).filter(Boolean))]
+  const autoContext = descriptions.join('; ')
+
+  const fitInput = document.getElementById('fitContext')
+  if (!fitInput.value.trim() && autoContext) {
+    fitInput.value = autoContext
+  }
+
+  renderScores(favorites)
+
+  // Fetch missing zones
+  for (const { d, missing } of needZonesFetch) {
+    const name = d.domain.replace(/\.[a-z]+$/, '')
+    const el = document.getElementById('zones-' + d.id)
+    if (!el) continue
+    try {
+      const zones = await checkMultipleZones(name, missing)
+      // Merge and save to DB
+      zoneCache[d.id] = { ...zoneCache[d.id], ...zones }
+      db.update(d.id, { zones: JSON.stringify(zoneCache[d.id]) })
+      renderZonePills(el, zoneCache[d.id], compareZones, name)
+    } catch {
+      el.innerHTML = '<span class="text-gray-300 text-xs">zone check failed</span>'
+    }
+  }
+  if (needZonesFetch.length) renderScores(favorites)
+
+  // Fetch missing fit scores
+  const fitContext = fitInput.value.trim()
+  const aiKey = loadSetting('aiApiKey') || undefined
+  if (needFit.length && fitContext) {
+    try {
+      const scores = await scoreFitBatch(needFit.map(d => d.domain), fitContext, aiKey)
+      for (const d of needFit) {
+        if (scores[d.domain] !== undefined) {
+          const fitScore = Math.min(10, Math.max(0, Math.round(scores[d.domain])))
+          fitCache[d.id] = fitScore
+          db.update(d.id, { fitScore })
+        }
+      }
+      renderScores(favorites)
+    } catch {}
+  }
+
+  // Fetch missing associations
+  const needAssoc = favorites.filter(d => assocCache[d.id] == null)
+  if (needAssoc.length) {
+    try {
+      const assocs = await associateDomains(needAssoc.map(d => d.domain), aiKey)
+      for (const d of needAssoc) {
+        if (assocs[d.domain]) {
+          assocCache[d.id] = assocs[d.domain]
+          // Save to db
+          db.update(d.id, { association: JSON.stringify(assocs[d.domain]) })
+          const el = document.getElementById('assoc-' + d.id)
+          if (el) {
+            el.textContent = assocs[d.domain].join(' · ')
+            el.className = 'text-sm italic text-gray-500'
+          }
+        }
+      }
+    } catch {}
+  }
+}
+
+async function refreshZones() {
+  const favorites = window._lastFavorites
+  if (!favorites?.length) return
+  const compareZones = getCompareZones()
+  for (const d of favorites) {
+    const name = d.domain.replace(/\.[a-z]+$/, '')
+    const el = document.getElementById('zones-' + d.id)
+    if (!el) continue
+    try {
+      const zones = await checkMultipleZones(name, compareZones)
+      zoneCache[d.id] = { ...zoneCache[d.id], ...zones }
+      db.update(d.id, { zones: JSON.stringify(zoneCache[d.id]) })
+      renderZonePills(el, zoneCache[d.id], compareZones, name)
+    } catch {}
+  }
+  renderScores(favorites)
+}
+
+async function refreshAssociations() {
+  const favorites = window._lastFavorites
+  if (!favorites?.length) return
+  for (const d of favorites) delete assocCache[d.id]
+  const aiKey = loadSetting('aiApiKey') || undefined
+  try {
+    const assocs = await associateDomains(favorites.map(d => d.domain), aiKey)
+    for (const d of favorites) {
+      if (assocs[d.domain]) {
+        assocCache[d.id] = assocs[d.domain]
+        db.update(d.id, { association: JSON.stringify(assocs[d.domain]) })
+        const el = document.getElementById('assoc-' + d.id)
+        if (el) {
+          el.textContent = assocs[d.domain].join(' · ')
+          el.className = 'text-sm italic text-gray-500'
+        }
+      }
+    }
+  } catch {}
+}
+
+function renderScores(favorites) {
+  if (!favorites) return
+  window._lastFavorites = favorites
+  const scoreSection = document.getElementById('scoreSection')
+  const scoreBody = document.getElementById('scoreBody')
+  if (!favorites.length) { scoreSection.classList.add('hidden'); return }
+
+  const scored = favorites.map(d => {
+    const name = d.domain.replace(/\.[a-z]+$/, '')
+    const zones = zoneCache[d.id] || null
+    const fit = fitCache[d.id] ?? null
+    const scores = scoreDomain(name, zones, fit)
+    return { id: d.id, domain: d.domain, name, scores, superFavorite: d.superFavorite, available: d.available }
+  })
+  scored.sort((a, b) => {
+    if (a.superFavorite !== b.superFavorite) return b.superFavorite ? 1 : -1
+    return b.scores.total - a.scores.total
+  })
+
+  const superCount = favorites.filter(d => d.superFavorite).length
+  document.getElementById('favCount').textContent = favorites.length + (superCount ? ' ★★' + superCount : '')
+  scoreBody.innerHTML = scored.map((s, i) => scoreRow(s, i)).join('')
+  scoreSection.classList.remove('hidden')
+}
+
+async function rescoreFit() {
+  const context = document.getElementById('fitContext').value.trim()
+  if (!context) { alert('Enter an app idea description for FIT scoring'); return }
+  const btn = document.querySelector('#scoreSection button[onclick="rescoreFit()"]')
+  const origText = btn.textContent
+  btn.textContent = 'Scoring...'
+  btn.disabled = true
+
+  const domains = db.findMany()
+  const favorites = domains.filter(d => d.favorite)
+  if (!favorites.length) { btn.textContent = origText; btn.disabled = false; return }
+
+  fitCache = {}
+  renderScores(favorites)
+
+  const aiKey = loadSetting('aiApiKey') || undefined
+  try {
+    const scores = await scoreFitBatch(favorites.map(d => d.domain), context, aiKey)
+    for (const d of favorites) {
+      if (scores[d.domain] !== undefined) {
+        const fitScore = Math.min(10, Math.max(0, Math.round(scores[d.domain])))
+        fitCache[d.id] = fitScore
+        db.update(d.id, { fitScore })
+      }
+    }
+    renderScores(favorites)
+    if (typeof gtag !== 'undefined') gtag('event', 'fit_scored')
+  } catch (e) {
+    console.error('FIT re-score failed', e)
+  }
+  btn.textContent = origText
+  btn.disabled = false
+}
+
+const PAGE_SIZE = 100
+
+function renderSavedAvailPage(available, page) {
+  const savedList = document.getElementById('savedAvailList')
+  const total = available.length
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+  const start = page * PAGE_SIZE
+  const slice = available.slice(start, start + PAGE_SIZE)
+  savedList.innerHTML = slice.map(d => domainRow(d, { compact: true, showDelete: true, noBadge: true })).join('')
+  const ctrl = document.getElementById('savedAvailPager')
+  if (totalPages <= 1) { if (ctrl) ctrl.innerHTML = ''; return }
+  ctrl.innerHTML = (page > 0 ? '<button onclick="window._savedAvailPage(' + (page - 1) + ')" class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200">&larr; Prev</button>' : '')
+    + '<span class="text-sm text-gray-500 mx-3">' + (start + 1) + '–' + Math.min(start + PAGE_SIZE, total) + ' of ' + total + '</span>'
+    + (page < totalPages - 1 ? '<button onclick="window._savedAvailPage(' + (page + 1) + ')" class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200">Next &rarr;</button>' : '')
+  window._savedAvailAll = available
+  window._savedAvailPage = (p) => renderSavedAvailPage(available, p)
+}
+
+function renderHistoryPage(allDomains, page) {
+  const list = document.getElementById('historyList')
+  const total = allDomains.length
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+  const start = page * PAGE_SIZE
+  const slice = allDomains.slice(start, start + PAGE_SIZE)
+  list.innerHTML = slice.map(d => domainRow(d, { compact: true })).join('')
+  const ctrl = document.getElementById('historyPager')
+  if (totalPages <= 1) { if (ctrl) ctrl.innerHTML = ''; return }
+  ctrl.innerHTML = (page > 0 ? '<button onclick="window._historyPage(' + (page - 1) + ')" class="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200">&larr; Prev</button>' : '')
+    + '<span class="text-sm text-gray-500 mx-3">' + (start + 1) + '–' + Math.min(start + PAGE_SIZE, total) + ' of ' + total + '</span>'
+    + (page < totalPages - 1 ? '<button onclick="window._historyPage(' + (page + 1) + ')" class="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200">Next &rarr;</button>' : '')
+  window._historyPage = (p) => renderHistoryPage(allDomains, p)
+}
+
+function loadSaved() {
+  const domains = db.findMany()
+  loadSets()
+  if (!domains.length) {
+    document.getElementById('scoreSection').classList.add('hidden')
+    document.getElementById('savedSection').classList.add('hidden')
+    document.getElementById('historySection').classList.add('hidden')
+    return
+  }
+
+  const favorites = domains.filter(d => d.favorite)
+  favorites.sort((a, b) => (b.superFavorite ? 1 : 0) - (a.superFavorite ? 1 : 0))
+  const available = domains.filter(d => d.available && !d.favorite)
+
+  if (favorites.length) {
+    loadFavData(favorites)
+  } else {
+    document.getElementById('scoreSection').classList.add('hidden')
+  }
+
+  const savedSection = document.getElementById('savedSection')
+  if (available.length) {
+    savedSection.classList.remove('hidden')
+    document.getElementById('savedAvailCount').textContent = available.length
+    renderSavedAvailPage(available, 0)
+  } else {
+    savedSection.classList.add('hidden')
+  }
+
+  const historySection = document.getElementById('historySection')
+  historySection.classList.remove('hidden')
+  document.getElementById('historyTotal').textContent = domains.length
+  renderHistoryPage(domains, 0)
+}
+
+function deleteDomain(id) {
+  db.delete(id)
+  loadSaved()
+}
+
+function clearHistory() {
+  if (!confirm('Clear all saved domains?')) return
+  db.deleteMany()
+  zoneCache = {}
+  fitCache = {}
+  assocCache = {}
+  window._lastFavorites = []
+  loadSaved()
+}
+
+function clearFavoritesOnly() {
+  if (!confirm('Clear all favorites without saving?')) return
+  db.clearFavorites()
+  zoneCache = {}
+  fitCache = {}
+  assocCache = {}
+  window._lastFavorites = []
+  document.getElementById('scoreSection').classList.add('hidden')
+  loadSaved()
+}
+
+async function promptSaveFavs() {
+  const name = prompt('Name this favorite set:')
+  if (!name) return
+  const fitContext = document.getElementById('fitContext').value.trim()
+  const set = db.createSet(name, fitContext || null)
+  if (!set) { alert('No favorites to save'); return }
+  db.clearFavorites()
+  zoneCache = {}
+  fitCache = {}
+  assocCache = {}
+  window._lastFavorites = []
+  document.getElementById('scoreSection').classList.add('hidden')
+  loadSaved()
+  loadSets()
+  if (typeof gtag !== 'undefined') gtag('event', 'favorite_saved')
+}
+
+function loadSets() {
+  const sets = db.listSets()
+  const section = document.getElementById('setsSection')
+  const list = document.getElementById('setsList')
+  if (!sets.length) { section.classList.add('hidden'); return }
+  section.classList.remove('hidden')
+  list.innerHTML = sets.map(s => {
+    const date = new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    const domains = JSON.parse(s.domains)
+    const superCount = domains.filter(d => d.superFavorite).length
+    const preview = domains.slice(0, 4).map(d => d.domain).join(', ') + (domains.length > 4 ? '...' : '')
+    return '<div class="px-6 py-3 flex items-center justify-between hover:bg-amber-25">'
+      + '<div>'
+      + '<span class="font-semibold text-amber-900">' + s.name + '</span>'
+      + '<span class="text-xs text-amber-500 ml-2">' + s.count + ' domains' + (superCount ? ' (' + superCount + ' super)' : '') + '</span>'
+      + '<span class="text-xs text-gray-400 ml-2">' + date + '</span>'
+      + '<div class="text-xs text-gray-400 font-mono mt-0.5">' + preview + '</div>'
+      + (s.fitContext ? '<div class="text-xs text-purple-400 mt-0.5">FIT: ' + s.fitContext + '</div>' : '')
+      + '</div>'
+      + '<div class="flex items-center gap-2">'
+      + '<button onclick="restoreSet(\'' + s.id + '\')" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1 rounded font-medium">Restore</button>'
+      + '<button onclick="deleteSet(\'' + s.id + '\')" class="text-gray-300 hover:text-red-400 text-xs">x</button>'
+      + '</div>'
+      + '</div>'
+  }).join('')
+}
+
+function restoreSet(id) {
+  if (!confirm('This will replace your current favorites with the saved set. Continue?')) return
+  const data = db.restoreSet(id)
+  if (data?.fitContext != null) {
+    const el = document.getElementById('fitContext')
+    el.value = data.fitContext
+    onFitContextInput()
+  }
+  zoneCache = {}
+  fitCache = {}
+  assocCache = {}
+  loadSaved()
+}
+
+function deleteSet(id) {
+  db.deleteSet(id)
+  loadSets()
+}
+
+function exportData() {
+  db.exportJSON()
+}
+
+// --- Main search ---
+async function startSearch() {
+  const desc = document.getElementById('description').value.trim()
+  if (!desc) return
+
+  const btn = document.getElementById('searchBtn')
+  btn.disabled = true
+  btn.textContent = 'Searching...'
+  btn.classList.add('opacity-50')
+  document.getElementById('stopBtn').classList.remove('hidden')
+  document.getElementById('statusMsg').textContent = ''
+
+  if (_abortController) _abortController.abort()
+  _abortController = new AbortController()
+  const signal = _abortController.signal
+
+  const zones = getSelectedZones()
+  const customPrompt = document.getElementById('promptBox').value.trim()
+  const aiKey = loadSetting('aiApiKey') || undefined
+
+  // Save active search state for resume
+  const activeSearch = { description: desc, zones, prompt: customPrompt || '' }
+  saveSetting('activeSearch', activeSearch)
+  document.getElementById('resumeBanner').classList.add('hidden')
+
+  if (typeof gtag !== 'undefined') gtag('event', 'search_started', { zones: zones.join(',') })
+
+  try {
+    document.getElementById('statusMsg').textContent = 'Generating domain name ideas...'
+    let names
+    try {
+      names = await generateDomainNames(desc, customPrompt || undefined, aiKey)
+    } catch (e) {
+      document.getElementById('statusMsg').textContent = 'Error: ' + e.message
+      searchDone()
+      return
+    }
+
+    if (signal.aborted) { searchDone(); return }
+
+    const stems = [...new Set(names.map(n => n.replace(/\.[a-z]+$/, '')))]
+    document.getElementById('generatedWordsList').textContent = stems.join('  ·  ')
+    document.getElementById('generatedWords').classList.remove('hidden')
+
+    const total = names.length * zones.length
+    document.getElementById('statusMsg').textContent = 'Checking availability of ' + total + ' domains across ' + zones.length + ' zone' + (zones.length > 1 ? 's' : '') + '...'
+
+    let idx = 0
+    for (const name of names) {
+      if (signal.aborted) break
+      for (const zone of zones) {
+        if (signal.aborted) break
+
+        const domain = name + '.' + zone
+        document.getElementById('statusMsg').textContent = 'Checking ' + domain + '...'
+
+        const available = await checkDomainAvailable(domain, signal)
+        if (signal.aborted) break
+
+        const record = db.upsert(domain, { domain, available, description: desc }, { available, description: desc })
+
+        if (typeof gtag !== 'undefined' && available) gtag('event', 'domain_available', { domain })
+
+        // Append to history
+        const historySection = document.getElementById('historySection')
+        historySection.classList.remove('hidden')
+        const historyList = document.getElementById('historyList')
+        const hrow = document.createElement('div')
+        hrow.innerHTML = domainRow(record, { compact: true })
+        historyList.insertBefore(hrow.firstChild, historyList.firstChild)
+        const ht = document.getElementById('historyTotal')
+        ht.textContent = parseInt(ht.textContent || '0') + 1
+
+        // Append available to saved section
+        if (available) {
+          const savedSection = document.getElementById('savedSection')
+          savedSection.classList.remove('hidden')
+          const savedList = document.getElementById('savedAvailList')
+          const srow = document.createElement('div')
+          srow.innerHTML = domainRow(record, { compact: true, showDelete: true, noBadge: true })
+          savedList.insertBefore(srow.firstChild, savedList.firstChild)
+          const sc = document.getElementById('savedAvailCount')
+          sc.textContent = parseInt(sc.textContent || '0') + 1
+        }
+
+        idx++
+        document.getElementById('statusMsg').textContent = 'Checked ' + idx + '/' + total + ' domains...'
+      }
+    }
+  } catch (e) {
+    if (!signal.aborted) {
+      document.getElementById('statusMsg').textContent = 'Error: ' + e.message
+    }
+  }
+
+  searchDone()
+  loadSaved()
+}
+
+function searchDone() {
+  _abortController = null
+  saveSetting('activeSearch', null)
+  const btn = document.getElementById('searchBtn')
+  btn.disabled = false
+  btn.textContent = 'Search Domains'
+  btn.classList.remove('opacity-50')
+  document.getElementById('stopBtn').classList.add('hidden')
+  const status = document.getElementById('statusMsg')
+  if (!status.textContent.startsWith('Error') && !status.textContent.startsWith('Stopped')) {
+    status.textContent = 'Done! (auto-saved)'
+  }
+  document.getElementById('generatedWords').classList.add('hidden')
+}
+
+function stopSearch() {
+  if (_abortController) {
+    _abortController.abort()
+    _abortController = null
+  }
+  document.getElementById('statusMsg').textContent = 'Stopped.'
+  searchDone()
+  loadSaved()
+}
+
+// --- Settings ---
+let _saveFitTimer = null
+function onFitContextInput() {
+  clearTimeout(_saveFitTimer)
+  _saveFitTimer = setTimeout(() => {
+    const val = document.getElementById('fitContext').value
+    saveSetting('fitContext', val)
+  }, 600)
+}
+
+function loadFitContext() {
+  const val = loadSetting('fitContext')
+  if (val != null) document.getElementById('fitContext').value = val
+}
+
+let _saveWeightsTimer = null
+function saveWeights() {
+  clearTimeout(_saveWeightsTimer)
+  _saveWeightsTimer = setTimeout(() => {
+    saveSetting('domainWeights', getWeights())
+  }, 600)
+}
+
+function loadWeights() {
+  const w = loadSetting('domainWeights')
+  if (!w) return
+  const ids = { len: 'wLen', pro: 'wPro', mem: 'wMem', brd: 'wBrd', zon: 'wZon', fit: 'wFit' }
+  for (const [k, elId] of Object.entries(ids)) {
+    if (w[k] != null) {
+      const el = document.getElementById(elId)
+      if (el) el.value = w[k]
+    }
+  }
+}
+
+let _savedPromptValue = ''
+function loadGenPrompt() {
+  const val = loadSetting('genPrompt')
+  _savedPromptValue = val || DEFAULT_SYSTEM_PROMPT
+  document.getElementById('promptBox').value = _savedPromptValue
+  document.getElementById('promptBox').addEventListener('input', () => {
+    const changed = document.getElementById('promptBox').value !== _savedPromptValue
+    document.getElementById('savePromptBtn').classList.toggle('hidden', !changed)
+  })
+}
+
+function resetPrompt() {
+  document.getElementById('promptBox').value = DEFAULT_SYSTEM_PROMPT
+  saveGenPrompt()
+}
+
+function saveGenPrompt(showConfirm) {
+  _savedPromptValue = document.getElementById('promptBox').value
+  saveSetting('genPrompt', _savedPromptValue)
+  document.getElementById('savePromptBtn').classList.add('hidden')
+  if (showConfirm) {
+    const el = document.getElementById('promptSaved')
+    el.classList.remove('hidden')
+    setTimeout(() => el.classList.add('hidden'), 2000)
+  }
+}
+
+function checkActiveSearch() {
+  const job = loadSetting('activeSearch')
+  if (!job) return
+  _activeSearch = job
+  document.getElementById('resumeBanner').classList.remove('hidden')
+}
+
+function dismissResume() {
+  document.getElementById('resumeBanner').classList.add('hidden')
+  saveSetting('activeSearch', null)
+  _activeSearch = null
+}
+
+function resumeSearch() {
+  if (!_activeSearch) return
+  document.getElementById('resumeBanner').classList.add('hidden')
+  document.getElementById('description').value = _activeSearch.description
+  if (_activeSearch.prompt) document.getElementById('promptBox').value = _activeSearch.prompt
+  startSearch()
+}
+
+let _savedAiKey = ''
+function onAiKeyInput(val) {
+  document.getElementById('aiProviderLabel').textContent = detectProvider(val)
+  document.getElementById('saveAiKeyBtn').classList.toggle('hidden', val === _savedAiKey)
+}
+
+function saveAiKey() {
+  const key = document.getElementById('aiKeyInput').value
+  _savedAiKey = key
+  saveSetting('aiApiKey', key)
+  document.getElementById('saveAiKeyBtn').classList.add('hidden')
+  const el = document.getElementById('aiKeySaved')
+  el.classList.remove('hidden')
+  setTimeout(() => el.classList.add('hidden'), 2000)
+}
+
+function clearAiKey() {
+  document.getElementById('aiKeyInput').value = ''
+  _savedAiKey = ''
+  document.getElementById('aiProviderLabel').textContent = 'Groq (default)'
+  document.getElementById('saveAiKeyBtn').classList.add('hidden')
+  saveSetting('aiApiKey', '')
+}
+
+function loadAiKey() {
+  const val = loadSetting('aiApiKey')
+  if (val) {
+    _savedAiKey = val
+    document.getElementById('aiKeyInput').value = val
+    document.getElementById('aiProviderLabel').textContent = detectProvider(val)
+  }
+}
+
+// --- Init ---
+loadWeights()
+loadSearchZones()
+loadCompareZones()
+loadGenPrompt()
+loadAiKey()
+loadFitContext()
+loadSaved()
+checkActiveSearch()
+
+// Expose all functions called from inline onclick attributes
+Object.assign(window, {
+  toggleFav,
+  toggleSuper,
+  toggleCheckFav,
+  startSearch,
+  stopSearch,
+  checkOne,
+  deleteDomain,
+  clearHistory,
+  clearFavoritesOnly,
+  promptSaveFavs,
+  restoreSet,
+  deleteSet,
+  exportData,
+  rescoreFit,
+  refreshZones,
+  refreshAssociations,
+  toggleSearchZone,
+  toggleCompareZone,
+  removeZone,
+  addCustomZone,
+  addCustomCompareZone,
+  saveGenPrompt,
+  resetPrompt,
+  saveAiKey,
+  clearAiKey,
+  onAiKeyInput,
+  onFitContextInput,
+  saveWeights,
+  dismissResume,
+  resumeSearch,
+  toggleMenu,
+})
