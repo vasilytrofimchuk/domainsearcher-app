@@ -140,6 +140,23 @@ Return ONLY valid JSON using the stem (part before the dot) as the key: {"stem":
 Example input: nexus.io, lumo.ai
 Example output: {"nexus": ["dev hub connector", "invisible web thread", "links flow bridge"], "lumo": ["ai clarity engine", "spark of insight", "gentle guiding intelligence"]}`
 
+export const DEFAULT_SYNONYM_PROMPT = `Given a domain name stem, return exactly 6 synonyms or semantically related words that would work as domain names (single lowercase words, no spaces; hyphens allowed for compound words).
+Vary the angle: include near-synonyms, evocative alternatives, and metaphorical variants.
+Return ONLY a JSON array of strings: ["word1", "word2", "word3", "word4", "word5", "word6"]`
+
+export async function generateSynonyms(stem, apiKey, systemPrompt) {
+  const text = await aiChat([
+    { role: 'system', content: systemPrompt || DEFAULT_SYNONYM_PROMPT },
+    { role: 'user', content: stem },
+  ], apiKey)
+  const match = text.match(/\[[\s\S]*?\]/)
+  if (!match) return []
+  try {
+    const arr = JSON.parse(match[0])
+    return arr.filter(w => typeof w === 'string' && /^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(w)).slice(0, 6)
+  } catch { return [] }
+}
+
 export async function associateDomains(domains, apiKey, systemPrompt) {
   if (!domains.length) return {}
 
