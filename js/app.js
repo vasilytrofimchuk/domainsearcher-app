@@ -802,7 +802,13 @@ function loadSets() {
   const sets = db.listSets()
   const section = document.getElementById('setsSection')
   const list = document.getElementById('setsList')
-  if (!sets.length) { section.classList.add('hidden'); return }
+  const grid = document.getElementById('row1Grid')
+  if (!sets.length) {
+    section.classList.add('hidden')
+    grid.classList.remove('xl:grid-cols-2')
+    return
+  }
+  grid.classList.add('xl:grid-cols-2')
   section.classList.remove('hidden')
   list.innerHTML = sets.map(s => {
     const date = new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
