@@ -35,7 +35,7 @@ class DomainDB {
       const record = {
         id: crypto.randomUUID(),
         domain,
-        available: false,
+        available: null,
         favorite: false,
         superFavorite: false,
         description: null,
