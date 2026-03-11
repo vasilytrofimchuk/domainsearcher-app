@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Startup Domain Search — AI Domain Name Generator &amp; Availability Checker</title>
+  <link rel="canonical" href="https://domainsearcher.app/">
+  <meta name="description" content="Free AI-powered domain name generator for startups. Generate 60 creative names from your idea, check availability across .com, .io, .ai, .app, .dev and score by length, pronounceability, memorability, brandability, and fit.">
+  <meta property="og:title" content="Startup Domain Search — AI Domain Name Generator &amp; Availability Checker">
+  <meta property="og:description" content="Free AI-powered domain name generator for startups. Generate creative names, check availability, and score by LEN, PRO, MEM, BRD, FIT.">
+  <meta property="og:url" content="https://domainsearcher.app/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Startup Domain Search">
+  <meta name="twitter:description" content="AI domain name generator &amp; availability checker for startups. Free, no signup.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+  <!-- JSON-LD structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Startup Domain Search",
+    "description": "AI-powered domain name generator for startups. Generate names from your idea, check availability across .com, .io, .ai, .app, .dev, and score by length, pronounceability, memorability, brandability, and fit.",
+    "url": "https://domainsearcher.app",
+    "applicationCategory": "WebApplication",
+    "operatingSystem": "Web",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NEWS4P2L13"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NEWS4P2L13');
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <style>
+    .zone-tag { padding: 2px 6px 2px 9px; border-radius: 9999px; font-size: 0.8rem; font-family: monospace; border: 1.5px solid #d1d5db; color: #6b7280; background: white; cursor: pointer; transition: all 0.15s; display:inline-flex; align-items:center; gap:3px; }
+    .zone-tag:hover { border-color: #06b6d4; color: #06b6d4; }
+    .zone-active { background: #06b6d4 !important; color: white !important; border-color: #06b6d4 !important; }
+    .zone-compare-active { background: #8b5cf6 !important; color: white !important; border-color: #8b5cf6 !important; }
+    .zone-x { font-size: 0.65rem; opacity: 0.45; line-height: 1; border-radius: 50%; padding: 0 1px; }
+    .zone-x:hover { opacity: 1; background: rgba(0,0,0,0.15); }
+    #savedAvailList > div { border-bottom: 1px solid #dcfce7; border-right: 1px solid #dcfce7; }
+    #historyList > div { border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; }
+  </style>
+
+  <div class="w-full max-w-[1800px] mx-auto px-4 lg:px-8 py-6">
+    <!-- Header -->
+    <h1 class="text-3xl font-bold mb-1">Startup Domain Search</h1>
+    <p class="text-gray-600 mb-6">Describe your idea and find available domains</p>
+
+    <div class="flex flex-col gap-6">
+
+      <!-- ROW 1: Search + Quick Check -->
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+
+        <!-- Quick Check + Saved Favorite Sets -->
+        <div class="flex flex-col gap-6">
+          <div class="bg-white rounded-xl shadow-lg p-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Check a specific domain</label>
+            <div class="flex gap-3">
+              <div class="flex-1 flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-cyan-500 focus-within:border-transparent">
+                <input id="checkDomain" type="text" placeholder="mydomain"
+                  class="flex-1 px-4 py-2.5 text-gray-800 focus:outline-none font-mono"
+                  onkeydown="if(event.key==='Enter')checkOne()">
+                <span id="checkZoneLabel" class="pr-3 text-gray-400 font-mono text-sm">.ai</span>
+              </div>
+              <button onclick="checkOne()"
+                class="bg-gray-700 hover:bg-gray-800 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors whitespace-nowrap">
+                Check
+              </button>
+            </div>
+            <div id="checkResult" class="mt-3 hidden"></div>
+          </div>
+
+          <!-- Saved Favorite Sets (under Quick Check) -->
+          <div id="setsSection" class="hidden">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-amber-200">
+              <div class="px-6 py-4 bg-amber-50 border-b border-amber-200">
+                <h2 class="text-lg font-bold text-amber-800">Saved Favorite Sets</h2>
+              </div>
+              <div id="setsList" class="divide-y divide-amber-50"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search Form -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <!-- AI Key row -->
+          <div class="flex items-center gap-3 flex-wrap mb-4 pb-4 border-b border-gray-100">
+            <label class="text-xs font-medium text-gray-500 whitespace-nowrap">AI provider</label>
+            <span id="aiProviderLabel" class="text-xs font-semibold text-gray-400">Groq (default)</span>
+            <input id="aiKeyInput" type="password" placeholder="paste OpenAI / Claude / Groq key to override"
+              class="flex-1 min-w-0 border border-gray-200 rounded px-3 py-1.5 text-xs font-mono text-gray-700 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+              oninput="onAiKeyInput(this.value)">
+            <button id="saveAiKeyBtn" onclick="saveAiKey()" class="hidden text-sm bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-3 py-1 rounded-lg transition-colors">Save</button>
+            <button onclick="clearAiKey()" class="text-xs text-gray-300 hover:text-red-400">clear</button>
+            <span id="aiKeySaved" class="text-xs text-green-500 hidden">saved</span>
+          </div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Describe your idea</label>
+          <textarea id="description" rows="3" placeholder="e.g. AI tool for generating marketing copy and ad creatives"
+            class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none"></textarea>
+
+          <div class="mt-3">
+            <label class="block text-xs font-medium text-gray-500 mb-1.5">Search zones (toggle, searches all selected)</label>
+            <div class="flex flex-wrap items-center gap-2" id="zoneSelector">
+              <button onclick="if(!event.target.classList.contains('zone-x'))toggleSearchZone(this)" data-zone="ai" class="zone-tag zone-active">.ai <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <button onclick="if(!event.target.classList.contains('zone-x'))toggleSearchZone(this)" data-zone="com" class="zone-tag">.com <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <button onclick="if(!event.target.classList.contains('zone-x'))toggleSearchZone(this)" data-zone="io" class="zone-tag">.io <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <button onclick="if(!event.target.classList.contains('zone-x'))toggleSearchZone(this)" data-zone="app" class="zone-tag">.app <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <button onclick="if(!event.target.classList.contains('zone-x'))toggleSearchZone(this)" data-zone="dev" class="zone-tag">.dev <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <button onclick="if(!event.target.classList.contains('zone-x'))toggleSearchZone(this)" data-zone="co" class="zone-tag">.co <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <button onclick="if(!event.target.classList.contains('zone-x'))toggleSearchZone(this)" data-zone="email" class="zone-tag">.email <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <button onclick="if(!event.target.classList.contains('zone-x'))toggleSearchZone(this)" data-zone="to" class="zone-tag">.to <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <button onclick="if(!event.target.classList.contains('zone-x'))toggleSearchZone(this)" data-zone="direct" class="zone-tag">.direct <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+              <div class="flex items-center gap-1">
+                <span class="text-gray-400 text-sm">.</span>
+                <input id="customZone" type="text" placeholder="custom" class="w-20 text-sm border border-gray-300 rounded px-2 py-1 font-mono focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  onkeydown="if(event.key==='Enter'){addCustomZone()}">
+                <button onclick="addCustomZone()" class="text-xs text-cyan-600 hover:text-cyan-800 font-medium">+</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Editable system prompt -->
+          <div class="mt-3">
+            <div class="flex items-center gap-3">
+              <button onclick="document.getElementById('promptBox').classList.toggle('hidden')" class="text-xs text-gray-400 hover:text-gray-600">&#9660; generation prompt</button>
+              <button id="savePromptBtn" onclick="saveGenPrompt(true)" class="hidden text-sm bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-3 py-1 rounded-lg transition-colors">Save prompt</button>
+              <button onclick="resetPrompt()" class="text-xs text-gray-300 hover:text-gray-500">reset default</button>
+              <span id="promptSaved" class="text-xs text-green-500 hidden">saved</span>
+            </div>
+            <textarea id="promptBox" rows="8" class="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono text-gray-600 focus:outline-none focus:ring-1 focus:ring-cyan-400 resize-y hidden"></textarea>
+          </div>
+
+          <!-- Generated names (shown during/after search, hidden when done) -->
+          <div id="generatedWords" class="hidden mt-3">
+            <label class="block text-xs font-medium text-gray-500 mb-1">Generated names</label>
+            <div id="generatedWordsList" class="text-xs font-mono text-gray-400 leading-5 flex flex-wrap gap-x-0"></div>
+          </div>
+
+          <div id="resumeBanner" class="hidden mt-3 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3 text-sm">
+            <span class="text-amber-700">&#9888; Search was interrupted.</span>
+            <button onclick="resumeSearch()" class="text-amber-800 font-semibold underline hover:no-underline">Resume</button>
+            <button onclick="dismissResume()" class="text-amber-400 hover:text-amber-600 ml-auto">&#x2715;</button>
+          </div>
+
+          <div class="flex items-center gap-4 mt-4">
+            <button id="searchBtn" onclick="startSearch()"
+              class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors">
+              Search Domains
+            </button>
+            <button id="stopBtn" onclick="stopSearch()" class="hidden bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors">
+              Stop
+            </button>
+            <span id="statusMsg" class="text-sm text-gray-500"></span>
+          </div>
+        </div>
+
+      </div><!-- /ROW 1 -->
+
+      <!-- ROW 2: Favorites + Scores (combined full-width) -->
+      <div id="scoreSection" class="hidden">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-purple-200">
+          <div class="px-6 py-4 bg-purple-50 border-b border-purple-200">
+            <div class="flex items-center justify-between mb-2">
+              <h2 class="text-lg font-bold text-purple-800">Favorites <span class="text-purple-500 font-normal text-base ml-1">(<span id="favCount">0</span>)</span></h2>
+              <div class="flex gap-2">
+                <button onclick="clearFavoritesOnly()" class="text-xs bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 px-3 py-1.5 rounded-lg font-medium transition-colors">Clear</button>
+                <button onclick="promptSaveFavs()" class="text-xs bg-yellow-200 hover:bg-yellow-300 text-yellow-800 px-3 py-1.5 rounded-lg font-medium transition-colors">Save &amp; Clear</button>
+              </div>
+            </div>
+            <div class="text-lg font-bold text-purple-800 hidden">Score Comparison</div>
+              <div class="flex flex-wrap gap-x-5 gap-y-0.5 mt-1 text-xs text-purple-400">
+                <span><b class="text-purple-600">LEN</b> shorter name (5 chars = 10)</span>
+                <span><b class="text-purple-600">PRO</b> easy to pronounce (syllables)</span>
+                <span><b class="text-purple-600">MEM</b> memorable (avoids generic suffixes)</span>
+                <span><b class="text-purple-600">BRD</b> brandable (invented/unique)</span>
+                <span><b class="text-purple-600">ZON</b> free TLDs in selected zones</span>
+                <span><b class="text-purple-600">FIT</b> matches app idea (AI-scored)</span>
+              </div>
+              <div class="flex items-center gap-2 mt-2">
+                <label class="text-xs font-medium text-purple-600 whitespace-nowrap">FIT context:</label>
+                <input id="fitContext" type="text" placeholder="Describe the app idea for FIT scoring..."
+                  class="flex-1 text-sm border border-purple-300 rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500 text-gray-700"
+                  oninput="onFitContextInput()" onkeydown="if(event.key==='Enter')rescoreFit()">
+                <button onclick="rescoreFit()" class="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded font-medium whitespace-nowrap">Re-score FIT</button>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 mt-2">
+                <label class="text-xs font-medium text-purple-600 whitespace-nowrap">Compare zones:</label>
+                <div id="compareZoneSelector" class="flex flex-wrap items-center gap-1.5">
+                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="com" class="zone-tag zone-compare-active">.com <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="io" class="zone-tag zone-compare-active">.io <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="co" class="zone-tag zone-compare-active">.co <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="app" class="zone-tag zone-compare-active">.app <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="dev" class="zone-tag zone-compare-active">.dev <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="email" class="zone-tag">.email <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="to" class="zone-tag">.to <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="direct" class="zone-tag">.direct <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                  <div class="flex items-center gap-1">
+                    <span class="text-gray-400 text-xs">.</span>
+                    <input id="customCompareZone" type="text" placeholder="custom" class="w-16 text-xs border border-gray-300 rounded px-1.5 py-0.5 font-mono focus:outline-none focus:ring-1 focus:ring-purple-400"
+                      onkeydown="if(event.key==='Enter'){addCustomCompareZone()}">
+                    <button onclick="addCustomCompareZone()" class="text-xs text-purple-500 hover:text-purple-700 font-medium">+</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table id="scoreTable" class="w-full text-sm">
+                <thead class="bg-purple-50 text-purple-700">
+                  <tr>
+                    <th class="px-3 py-2 text-left font-semibold" style="width:160px;min-width:130px">Domain</th>
+                    <th class="px-2 py-2 text-left font-semibold text-purple-500" style="width:210px;min-width:160px;font-weight:400;font-size:0.75rem">Zones <button onclick="refreshZones()" title="Re-check all zones" style="font-size:11px;opacity:0.6;vertical-align:middle;cursor:pointer" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">&#x21bb;</button></th>
+                    <th class="px-2 py-2 text-left font-semibold text-gray-400" style="min-width:160px;font-weight:400;font-style:italic">association <button onclick="refreshAssociations()" title="Re-generate associations" style="font-size:16px;opacity:0.5;vertical-align:middle;cursor:pointer;margin-left:4px" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">&#x21bb;</button></th>
+                    <th class="pt-2 pb-1 text-center font-semibold" style="width:52px" title="Shorter is better (4-7 chars ideal)">LEN<div><input id="wLen" type="number" min="0" max="9" value="1" onchange="renderScores(window._lastFavorites);saveWeights()" style="width:36px;text-align:center;border:1px solid #ddd6fe;border-radius:4px;padding:1px 2px;font-size:10px;color:#7c3aed;font-weight:400;margin-top:2px"></div></th>
+                    <th class="pt-2 pb-1 text-center font-semibold" style="width:52px" title="Consonant-vowel flow">PRO<div><input id="wPro" type="number" min="0" max="9" value="1" onchange="renderScores(window._lastFavorites);saveWeights()" style="width:36px;text-align:center;border:1px solid #ddd6fe;border-radius:4px;padding:1px 2px;font-size:10px;color:#7c3aed;font-weight:400;margin-top:2px"></div></th>
+                    <th class="pt-2 pb-1 text-center font-semibold" style="width:52px" title="Easy to remember">MEM<div><input id="wMem" type="number" min="0" max="9" value="1" onchange="renderScores(window._lastFavorites);saveWeights()" style="width:36px;text-align:center;border:1px solid #ddd6fe;border-radius:4px;padding:1px 2px;font-size:10px;color:#7c3aed;font-weight:400;margin-top:2px"></div></th>
+                    <th class="pt-2 pb-1 text-center font-semibold" style="width:52px" title="Unique and brandable">BRD<div><input id="wBrd" type="number" min="0" max="9" value="1" onchange="renderScores(window._lastFavorites);saveWeights()" style="width:36px;text-align:center;border:1px solid #ddd6fe;border-radius:4px;padding:1px 2px;font-size:10px;color:#7c3aed;font-weight:400;margin-top:2px"></div></th>
+                    <th class="pt-2 pb-1 text-center font-semibold" style="width:52px" title="Free zones (.com/.io/.co/.app/.dev)">ZON<div><input id="wZon" type="number" min="0" max="9" value="1" onchange="renderScores(window._lastFavorites);saveWeights()" style="width:36px;text-align:center;border:1px solid #ddd6fe;border-radius:4px;padding:1px 2px;font-size:10px;color:#7c3aed;font-weight:400;margin-top:2px"></div></th>
+                    <th class="pt-2 pb-1 text-center font-semibold" style="width:52px" title="How well name evokes the app idea (AI-scored, 2× weight)">FIT<div><input id="wFit" type="number" min="0" max="9" value="2" onchange="renderScores(window._lastFavorites);saveWeights()" style="width:36px;text-align:center;border:1px solid #ddd6fe;border-radius:4px;padding:1px 2px;font-size:10px;color:#7c3aed;font-weight:400;margin-top:2px"></div></th>
+                    <th class="py-2 text-center font-semibold" style="width:70px">TOTAL</th>
+                    <th class="py-2 text-center font-semibold" style="width:78px"></th>
+                    <th class="px-2 py-2 text-center font-semibold" style="width:88px"></th>
+                  </tr>
+                </thead>
+                <tbody id="scoreBody" class="divide-y divide-purple-50"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      <!-- /ROW 2 -->
+
+      <!-- ROW 4: Saved available — 3-column grid, full width -->
+      <div id="savedSection" class="hidden">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-green-200">
+          <div class="px-6 py-4 bg-green-50 border-b border-green-200 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-green-800">Available Domains</h2>
+            <span class="text-green-600 font-bold text-lg"><span id="savedAvailCount">0</span></span>
+          </div>
+          <div id="savedAvailList" style="display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid #dcfce7"></div>
+          <div id="savedAvailPager" class="flex items-center justify-center px-4 py-3 border-t border-green-100"></div>
+        </div>
+      </div>
+
+      <!-- ROW 6: History (full width) -->
+      <div id="historySection" class="hidden">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 class="text-lg font-semibold">Search History</h2>
+            <div class="flex gap-4 items-center">
+              <button onclick="exportData()" class="text-xs text-cyan-500 hover:text-cyan-700">Export JSON</button>
+              <span class="text-sm text-gray-500"><span id="historyTotal">0</span> total</span>
+              <button onclick="clearHistory()" class="text-xs text-red-400 hover:text-red-600">Clear All</button>
+            </div>
+          </div>
+          <div id="historyList" style="display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid #f3f4f6"></div>
+          <div id="historyPager" class="flex items-center justify-center px-4 py-3 border-t border-gray-100"></div>
+        </div>
+      </div>
+
+      <!-- About section (SEO) -->
+      <details class="bg-white rounded-xl shadow-lg p-6 text-sm text-gray-600">
+        <summary class="cursor-pointer font-semibold text-gray-700 text-base mb-2">About Startup Domain Search</summary>
+        <div class="mt-3 space-y-3 leading-relaxed">
+          <p><strong>Startup Domain Search</strong> is a free AI-powered domain name generator and availability checker built for founders and indie hackers. Describe your startup idea in plain English, and the tool generates 60 creative, brandable domain name candidates using AI — then checks real-time availability across the TLDs you care about.</p>
+          <p><strong>How to use:</strong> Type your startup idea in the "Describe your idea" box, select the TLD zones you want to check (.ai, .com, .io, .app, .dev, etc.), then click "Search Domains". Results stream in as each domain is checked. Star ★ domains you like to add them to your Favorites panel for scoring.</p>
+          <p><strong>Scoring system:</strong> Each favorited domain is scored on six dimensions — <strong>LEN</strong> (shorter = better), <strong>PRO</strong> (easy to pronounce), <strong>MEM</strong> (memorable, avoids generic patterns), <strong>BRD</strong> (brandable, invented/unique), <strong>ZON</strong> (free TLDs available), and <strong>FIT</strong> (AI-scored relevance to your app idea). Weights are adjustable. The TOTAL score helps you compare candidates objectively.</p>
+          <p><strong>API key:</strong> The tool uses Groq (free tier) by default with a bundled key. For heavy use or to use OpenAI or Claude instead, paste your own API key in the "AI provider" field — it's stored locally in your browser.</p>
+          <p><strong>Privacy:</strong> All data is stored in your browser's localStorage. Nothing is sent to any server except direct AI API calls (to Groq/OpenAI/Anthropic) and RDAP availability checks (to rdap.org). No account required, no data collected.</p>
+        </div>
+      </details>
+
+    </div><!-- /flex -->
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
