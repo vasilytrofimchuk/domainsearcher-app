@@ -210,6 +210,16 @@
                   </div>
                 </div>
               </div>
+              <!-- Association prompt (collapsible) -->
+              <div class="mt-2">
+                <div class="flex items-center gap-3">
+                  <button onclick="document.getElementById('assocPromptBox').classList.toggle('hidden')" class="text-xs text-purple-400 hover:text-purple-600">&#9660; association prompt</button>
+                  <button id="saveAssocPromptBtn" onclick="saveAssocPrompt(true)" class="hidden text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold px-3 py-1 rounded-lg transition-colors">Save prompt</button>
+                  <button onclick="resetAssocPrompt()" class="text-xs text-gray-300 hover:text-gray-500">reset default</button>
+                  <span id="assocPromptSaved" class="text-xs text-green-500 hidden">saved</span>
+                </div>
+                <textarea id="assocPromptBox" rows="5" class="hidden mt-1 w-full border border-purple-100 rounded-lg px-3 py-2 text-xs font-mono text-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-400 resize-y"></textarea>
+              </div>
             </div>
             <div class="overflow-x-auto">
               <table id="scoreTable" class="w-full text-sm">

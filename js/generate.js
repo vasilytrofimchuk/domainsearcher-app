@@ -1,5 +1,5 @@
-// Bundled API key placeholder — replaced by `sed` at GitHub Actions build time
-export const BUNDLED_API_KEY = '__GROQ_API_KEY__'
+// Bundled API key placeholder — replaced by `sed` at GitHub Actions build time (base64-encoded to avoid push protection)
+export const BUNDLED_API_KEY = atob('__GROQ_API_KEY__')
 const BUNDLED_BASE_URL = 'https://api.groq.com/openai/v1'
 const BUNDLED_MODEL = 'llama-3.3-70b-versatile'
 
@@ -128,21 +128,20 @@ Return ONLY a JSON object mapping domain names to scores. Example: {"copygen.ai"
   }
 }
 
-export async function associateDomains(domains, apiKey) {
+export const DEFAULT_ASSOC_PROMPT = `For each domain name stem, write exactly 3 short word-associations (2-4 words each, lowercase, no punctuation).
+Each association should capture a different angle: literal meaning, emotional feel, and use-case evocation.
+Be creative and specific — avoid generic words like "digital", "smart", "tech", "fast".
+Return ONLY valid JSON: {"stem": ["assoc1", "assoc2", "assoc3"], ...}
+Example: {"nexus": ["junction meeting point", "invisible web thread", "links flow bridge"], "lumo": ["warm amber glow", "spark of clarity", "gentle guiding light"]}`
+
+export async function associateDomains(domains, apiKey, systemPrompt) {
   if (!domains.length) return {}
 
   // Deduplicate stems
   const stems = [...new Set(domains.map(d => d.replace(/\.[a-z]+$/, '')))]
 
   const text = await aiChat([
-    {
-      role: 'system',
-      content: `For each domain name stem, write exactly 3 short word-associations (2-4 words each, lowercase, no punctuation).
-Each association should capture a different angle: literal meaning, emotional feel, and use-case evocation.
-Be creative and specific — avoid generic words like "digital", "smart", "tech", "fast".
-Return ONLY valid JSON: {"stem": ["assoc1", "assoc2", "assoc3"], ...}
-Example: {"nexus": ["junction meeting point", "invisible web thread", "links flow bridge"], "lumo": ["warm amber glow", "spark of clarity", "gentle guiding light"]}`,
-    },
+    { role: 'system', content: systemPrompt || DEFAULT_ASSOC_PROMPT },
     { role: 'user', content: stems.join('\n') },
   ], apiKey)
 

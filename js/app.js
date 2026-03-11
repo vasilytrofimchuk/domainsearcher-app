@@ -1,6 +1,6 @@
 import { db, saveSetting, loadSetting } from './storage.js'
 import { checkDomainAvailable, checkMultipleZones } from './check.js'
-import { generateDomainNames, scoreFitBatch, associateDomains, detectProvider, DEFAULT_SYSTEM_PROMPT } from './generate.js'
+import { generateDomainNames, scoreFitBatch, associateDomains, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT } from './generate.js'
 
 // Active search controller
 let _abortController = null
@@ -9,6 +9,10 @@ let _abortController = null
 let zoneCache = {}
 let fitCache = {}
 let assocCache = {}
+
+// Track which favorite IDs have already had zones/fit/assoc loaded this session
+// Prevents redundant re-checks when favorites list changes (toggle, etc.)
+const _loadedFavIds = new Set()
 
 // Active search state (stored in localStorage for resume)
 let _activeSearch = null
@@ -403,57 +407,57 @@ function renderZonePills(el, zones, filterZones, name) {
 
 async function loadFavData(favorites) {
   const compareZones = getCompareZones()
-  const needZonesFetch = []
-  const needFit = []
 
+  // Load all data from DB into in-memory caches (don't overwrite existing in-memory cache)
   for (const d of favorites) {
-    const cached = d.zones ? JSON.parse(d.zones) : {}
-    zoneCache[d.id] = cached
-
-    const missing = compareZones.filter(z => !(z in cached))
-    if (missing.length) needZonesFetch.push({ d, missing })
-
-    if (d.fitScore != null) {
-      fitCache[d.id] = d.fitScore
-    } else {
-      needFit.push(d)
-    }
-
-    if (d.association) {
+    if (!zoneCache[d.id]) zoneCache[d.id] = d.zones ? JSON.parse(d.zones) : {}
+    if (fitCache[d.id] == null && d.fitScore != null) fitCache[d.id] = d.fitScore
+    if (assocCache[d.id] == null && d.association) {
       try { assocCache[d.id] = JSON.parse(d.association) } catch { assocCache[d.id] = [d.association] }
     }
   }
 
-  const descriptions = [...new Set(favorites.map(d => d.description).filter(Boolean))]
-  const autoContext = descriptions.join('; ')
-
+  // Auto-set FIT context if empty
   const fitInput = document.getElementById('fitContext')
-  if (!fitInput.value.trim() && autoContext) {
-    fitInput.value = autoContext
+  if (!fitInput.value.trim()) {
+    const descriptions = [...new Set(favorites.map(d => d.description).filter(Boolean))]
+    if (descriptions.length) fitInput.value = descriptions.join('; ')
   }
 
+  // Render immediately with what we have
   renderScores(favorites)
 
-  // Fetch missing zones
+  // Only fetch zones/fit/assoc for NEW favorites not yet loaded this session
+  const newFavs = favorites.filter(d => !_loadedFavIds.has(d.id))
+  if (!newFavs.length) return
+  newFavs.forEach(d => _loadedFavIds.add(d.id))
+
+  const aiKey = loadSetting('aiApiKey') || undefined
+
+  // Zones: only check zones missing from in-memory cache
+  const needZonesFetch = []
+  for (const d of newFavs) {
+    const cached = zoneCache[d.id] || {}
+    const missing = compareZones.filter(z => !(z in cached))
+    if (missing.length) needZonesFetch.push({ d, missing })
+  }
   for (const { d, missing } of needZonesFetch) {
     const name = d.domain.replace(/\.[a-z]+$/, '')
     const el = document.getElementById('zones-' + d.id)
-    if (!el) continue
     try {
       const zones = await checkMultipleZones(name, missing)
-      // Merge and save to DB
       zoneCache[d.id] = { ...zoneCache[d.id], ...zones }
       db.update(d.id, { zones: JSON.stringify(zoneCache[d.id]) })
-      renderZonePills(el, zoneCache[d.id], compareZones, name)
+      if (el) renderZonePills(el, zoneCache[d.id], compareZones, name)
     } catch {
-      el.innerHTML = '<span class="text-gray-300 text-xs">zone check failed</span>'
+      if (el) el.innerHTML = '<span class="text-gray-300 text-xs">zone check failed</span>'
     }
   }
   if (needZonesFetch.length) renderScores(favorites)
 
-  // Fetch missing fit scores
+  // Fit scores: only for new favorites without a score
   const fitContext = fitInput.value.trim()
-  const aiKey = loadSetting('aiApiKey') || undefined
+  const needFit = newFavs.filter(d => fitCache[d.id] == null)
   if (needFit.length && fitContext) {
     try {
       const scores = await scoreFitBatch(needFit.map(d => d.domain), fitContext, aiKey)
@@ -468,15 +472,15 @@ async function loadFavData(favorites) {
     } catch {}
   }
 
-  // Fetch missing associations
-  const needAssoc = favorites.filter(d => assocCache[d.id] == null)
+  // Associations: only for new favorites without one
+  const assocPrompt = loadSetting('assocPrompt') || undefined
+  const needAssoc = newFavs.filter(d => assocCache[d.id] == null)
   if (needAssoc.length) {
     try {
-      const assocs = await associateDomains(needAssoc.map(d => d.domain), aiKey)
+      const assocs = await associateDomains(needAssoc.map(d => d.domain), aiKey, assocPrompt)
       for (const d of needAssoc) {
         if (assocs[d.domain]) {
           assocCache[d.id] = assocs[d.domain]
-          // Save to db
           db.update(d.id, { association: JSON.stringify(assocs[d.domain]) })
           const el = document.getElementById('assoc-' + d.id)
           if (el) {
@@ -510,10 +514,11 @@ async function refreshZones() {
 async function refreshAssociations() {
   const favorites = window._lastFavorites
   if (!favorites?.length) return
-  for (const d of favorites) delete assocCache[d.id]
+  for (const d of favorites) { delete assocCache[d.id]; _loadedFavIds.delete(d.id) }
   const aiKey = loadSetting('aiApiKey') || undefined
+  const assocPrompt = loadSetting('assocPrompt') || undefined
   try {
-    const assocs = await associateDomains(favorites.map(d => d.domain), aiKey)
+    const assocs = await associateDomains(favorites.map(d => d.domain), aiKey, assocPrompt)
     for (const d of favorites) {
       if (assocs[d.domain]) {
         assocCache[d.id] = assocs[d.domain]
@@ -666,6 +671,7 @@ function clearHistory() {
   zoneCache = {}
   fitCache = {}
   assocCache = {}
+  _loadedFavIds.clear()
   window._lastFavorites = []
   loadSaved()
 }
@@ -676,6 +682,7 @@ function clearFavoritesOnly() {
   zoneCache = {}
   fitCache = {}
   assocCache = {}
+  _loadedFavIds.clear()
   window._lastFavorites = []
   document.getElementById('scoreSection').classList.add('hidden')
   loadSaved()
@@ -691,6 +698,7 @@ async function promptSaveFavs() {
   zoneCache = {}
   fitCache = {}
   assocCache = {}
+  _loadedFavIds.clear()
   window._lastFavorites = []
   document.getElementById('scoreSection').classList.add('hidden')
   loadSaved()
@@ -736,6 +744,7 @@ function restoreSet(id) {
   zoneCache = {}
   fitCache = {}
   assocCache = {}
+  _loadedFavIds.clear()
   loadSaved()
 }
 
@@ -934,6 +943,34 @@ function saveGenPrompt(showConfirm) {
   }
 }
 
+// --- Association prompt settings ---
+let _savedAssocPromptValue = ''
+function loadAssocPrompt() {
+  const val = loadSetting('assocPrompt')
+  _savedAssocPromptValue = val || DEFAULT_ASSOC_PROMPT
+  document.getElementById('assocPromptBox').value = _savedAssocPromptValue
+  document.getElementById('assocPromptBox').addEventListener('input', () => {
+    const changed = document.getElementById('assocPromptBox').value !== _savedAssocPromptValue
+    document.getElementById('saveAssocPromptBtn').classList.toggle('hidden', !changed)
+  })
+}
+
+function resetAssocPrompt() {
+  document.getElementById('assocPromptBox').value = DEFAULT_ASSOC_PROMPT
+  saveAssocPrompt()
+}
+
+function saveAssocPrompt(showConfirm) {
+  _savedAssocPromptValue = document.getElementById('assocPromptBox').value
+  saveSetting('assocPrompt', _savedAssocPromptValue)
+  document.getElementById('saveAssocPromptBtn').classList.add('hidden')
+  if (showConfirm) {
+    const el = document.getElementById('assocPromptSaved')
+    el.classList.remove('hidden')
+    setTimeout(() => el.classList.add('hidden'), 2000)
+  }
+}
+
 function checkActiveSearch() {
   const job = loadSetting('activeSearch')
   if (!job) return
@@ -993,6 +1030,7 @@ loadWeights()
 loadSearchZones()
 loadCompareZones()
 loadGenPrompt()
+loadAssocPrompt()
 loadAiKey()
 loadFitContext()
 loadSaved()
@@ -1023,6 +1061,8 @@ Object.assign(window, {
   addCustomCompareZone,
   saveGenPrompt,
   resetPrompt,
+  saveAssocPrompt,
+  resetAssocPrompt,
   saveAiKey,
   clearAiKey,
   onAiKeyInput,

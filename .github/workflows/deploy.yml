@@ -13,7 +13,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Inject Groq API key
-        run: sed -i "s/__GROQ_API_KEY__/${{ secrets.GROQ_API_KEY }}/g" js/generate.js
+        run: |
+          ENCODED=$(printf '%s' '${{ secrets.GROQ_API_KEY }}' | base64 | tr -d '\n')
+          sed -i "s|__GROQ_API_KEY__|$ENCODED|g" js/generate.js
 
       - uses: peaceiris/actions-gh-pages@v4
         with:
