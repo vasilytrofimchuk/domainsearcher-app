@@ -2,7 +2,7 @@
  * Domain availability checking via RDAP (rdap.org)
  * rdap.org is CORS-enabled — browser can call directly, no proxy needed.
  * GET not HEAD (some servers return 405 on HEAD)
- * 404 = available, 200 = taken
+ * Returns: true = available, false = taken, null = unknown (error / unexpected status)
  */
 
 export async function checkDomainAvailable(domain, signal) {
@@ -12,9 +12,11 @@ export async function checkDomainAvailable(domain, signal) {
       redirect: 'follow',
       signal: signal ?? AbortSignal.timeout(10000),
     })
-    return res.status === 404
+    if (res.status === 404) return true    // not registered = available
+    if (res.status === 200) return false   // registered = taken
+    return null                            // 400/422/503/etc — can't tell
   } catch {
-    return false // conservative: unknown = unavailable
+    return null  // CORS block, timeout, network error — don't assume taken
   }
 }
 

@@ -223,11 +223,13 @@ async function checkOne() {
     const domain = name + '.' + zone
     resultDiv.innerHTML = '<span class="text-gray-400 text-sm">Checking ' + domain + '...</span>' + html
     const available = await checkDomainAvailable(domain)
-    const record = db.upsert(domain, { domain, available }, { available })
-    const badge = available
+    const record = db.upsert(domain, { domain, available: available === true }, { available: available === true })
+    const badge = available === true
       ? '<span class="bg-green-100 text-green-700 text-sm font-medium px-3 py-1 rounded-full">Available</span>'
-      : '<span class="text-red-400 text-sm">Taken</span>'
-    const nameClass = available ? 'text-green-700 font-semibold' : 'text-gray-400'
+      : available === false
+        ? '<span class="text-red-400 text-sm">Taken</span>'
+        : '<span class="text-yellow-500 text-sm" title="Check failed — RDAP returned an unexpected response">? Unknown</span>'
+    const nameClass = available === true ? 'text-green-700 font-semibold' : 'text-gray-400'
     const favBtn = '<button onclick="toggleCheckFav(\'' + record.id + '\',this)" class="ml-2">'
       + starIcon(record.favorite) + '</button>'
     html += '<div class="flex items-center gap-3 py-1">'
@@ -409,9 +411,11 @@ function zonePillsHTML(zones, filterZones, name) {
     const url = name ? 'https://' + name + '.' + z : null
     const link = url ? ' href="' + url + '" target="_blank" rel="noopener"' : ''
     const tag = url ? 'a' : 'span'
-    return avail
+    return avail === true
       ? '<' + tag + link + ' style="background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:3px;font-size:10.5px;font-family:monospace;font-weight:600;text-decoration:none;cursor:pointer">.' + z + '</' + tag + '>'
-      : '<' + tag + link + ' style="background:#f1f5f9;color:#94a3b8;padding:1px 6px;border-radius:3px;font-size:10.5px;font-family:monospace;text-decoration:none;cursor:pointer">.' + z + '</' + tag + '>'
+      : avail === false
+        ? '<' + tag + link + ' style="background:#f1f5f9;color:#94a3b8;padding:1px 6px;border-radius:3px;font-size:10.5px;font-family:monospace;text-decoration:none;cursor:pointer">.' + z + '</' + tag + '>'
+        : '<' + tag + link + ' title="Check failed" style="background:#fef9c3;color:#b45309;padding:1px 6px;border-radius:3px;font-size:10.5px;font-family:monospace;text-decoration:none;cursor:pointer">.' + z + '?</' + tag + '>'
   }).join(' ')
 }
 
@@ -940,9 +944,10 @@ async function startSearch() {
         const available = await checkDomainAvailable(domain, signal)
         if (signal.aborted) break
 
-        const record = db.upsert(domain, { domain, available, description: desc }, { available, description: desc })
+        const isAvailable = available === true
+        const record = db.upsert(domain, { domain, available: isAvailable, description: desc }, { available: isAvailable, description: desc })
 
-        if (typeof gtag !== 'undefined' && available) gtag('event', 'domain_available', { domain })
+        if (typeof gtag !== 'undefined' && isAvailable) gtag('event', 'domain_available', { domain })
 
         // Append to history
         const historySection = document.getElementById('historySection')
@@ -955,7 +960,7 @@ async function startSearch() {
         ht.textContent = parseInt(ht.textContent || '0') + 1
 
         // Append available to saved section
-        if (available) {
+        if (isAvailable) {
           const savedSection = document.getElementById('savedSection')
           savedSection.classList.remove('hidden')
           const savedList = document.getElementById('savedAvailList')
