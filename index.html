@@ -67,17 +67,15 @@
           <div class="bg-white rounded-xl shadow-lg p-6">
             <label class="block text-sm font-medium text-gray-700 mb-2">Check a specific domain</label>
             <div class="flex gap-3">
-              <div class="flex-1 flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-cyan-500 focus-within:border-transparent">
-                <input id="checkDomain" type="text" placeholder="mydomain"
-                  class="flex-1 px-4 py-2.5 text-gray-800 focus:outline-none font-mono"
-                  onkeydown="if(event.key==='Enter')checkOne()">
-                <span id="checkZoneLabel" class="pr-3 text-gray-400 font-mono text-sm">.ai</span>
-              </div>
+              <input id="checkDomain" type="text" placeholder="mydomain"
+                class="flex-1 min-w-0 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-mono"
+                onkeydown="if(event.key==='Enter')checkOne()">
               <button onclick="checkOne()"
                 class="bg-gray-700 hover:bg-gray-800 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors whitespace-nowrap">
                 Check
               </button>
             </div>
+            <p id="checkZoneLabel" class="mt-1.5 text-xs text-gray-400">.ai</p>
             <div id="checkResult" class="mt-3 hidden"></div>
           </div>
 
@@ -161,7 +159,7 @@
             <button onclick="dismissResume()" class="text-amber-400 hover:text-amber-600 ml-auto">&#x2715;</button>
           </div>
 
-          <div class="flex items-center gap-4 mt-4">
+          <div class="flex flex-wrap items-center gap-3 mt-4">
             <button id="searchBtn" onclick="startSearch()"
               class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors">
               Search Domains
@@ -169,7 +167,7 @@
             <button id="stopBtn" onclick="stopSearch()" class="hidden bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors">
               Stop
             </button>
-            <span id="statusMsg" class="text-sm text-gray-500"></span>
+            <span id="statusMsg" class="text-sm text-gray-500 break-all"></span>
           </div>
         </div>
 

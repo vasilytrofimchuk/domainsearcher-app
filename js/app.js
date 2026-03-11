@@ -37,6 +37,12 @@ function removeZone(e, x) {
   if (isCompare) saveCompareZones(); else saveSearchZones()
 }
 
+function _zoneLabel(zones) {
+  if (!zones.length) return 'no zones'
+  if (zones.length === 1) return '.' + zones[0]
+  return '.' + zones[0] + ' +' + (zones.length - 1) + ' more'
+}
+
 function zoneX() {
   return '<span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span>'
 }
@@ -44,7 +50,7 @@ function zoneX() {
 function toggleSearchZone(btn) {
   btn.classList.toggle('zone-active')
   const zones = getSelectedZones()
-  document.getElementById('checkZoneLabel').textContent = zones.map(z => '.' + z).join(', ')
+  document.getElementById('checkZoneLabel').textContent = _zoneLabel(zones)
   saveSearchZones()
 }
 
@@ -66,7 +72,7 @@ function addCustomZone() {
   btn.innerHTML = '.' + zone + zoneX()
   const container = document.getElementById('zoneSelector')
   container.insertBefore(btn, container.lastElementChild)
-  document.getElementById('checkZoneLabel').textContent = getSelectedZones().map(z => '.' + z).join(', ')
+  document.getElementById('checkZoneLabel').textContent = _zoneLabel(getSelectedZones())
   input.value = ''
   saveSearchZones()
 }
@@ -127,7 +133,7 @@ function loadSearchZones() {
     btn.innerHTML = '.' + z + zoneX()
     container.insertBefore(btn, container.lastElementChild)
   }
-  document.getElementById('checkZoneLabel').textContent = getSelectedZones().map(z => '.' + z).join(', ')
+  document.getElementById('checkZoneLabel').textContent = _zoneLabel(getSelectedZones())
 }
 
 function loadCompareZones() {
