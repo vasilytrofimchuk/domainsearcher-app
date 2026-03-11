@@ -21,10 +21,15 @@ async function checkViaDoh(domain, signal) {
     })
     if (!res.ok) return null
     const data = await res.json()
-    // Status 3 = NXDOMAIN → domain not in DNS → available
+    // Status 3 = NXDOMAIN → not in DNS → available
     if (data.Status === 3) return true
-    // Status 0 with NS Answer records → domain registered → taken
-    if (data.Status === 0 && data.Answer?.some(r => r.type === 2)) return false
+    if (data.Status === 0) {
+      const answers = data.Answer || []
+      // Has NS records in Answer → domain is delegated → taken
+      if (answers.some(r => r.type === 2)) return false
+      // No Answer at all (SOA in Authority, empty Answer) → domain not delegated → available
+      if (answers.length === 0) return true
+    }
     return null
   } catch {
     return null
