@@ -640,7 +640,6 @@ async function refreshAssociations() {
   if (!favorites?.length) return
   const btn = document.querySelector('button[onclick="refreshAssociations()"]')
   if (btn) { btn.textContent = '⏳'; btn.style.opacity = '1'; btn.disabled = true }
-  for (const d of favorites) { delete assocCache[d.id]; _loadedFavIds.delete(d.id) }
   const aiKey = loadSetting('aiApiKey') || undefined
   const assocPrompt = document.getElementById('assocPromptBox')?.value || loadSetting('assocPrompt') || undefined
   try {
@@ -651,13 +650,9 @@ async function refreshAssociations() {
       if (assocs[d.domain]) {
         assocCache[d.id] = assocs[d.domain]
         db.update(d.id, { association: JSON.stringify(assocs[d.domain]) })
-        const el = document.getElementById('assoc-' + d.id)
-        if (el) {
-          el.textContent = assocs[d.domain].join(' · ')
-          el.className = 'text-sm italic text-gray-500'
-        }
       }
     }
+    renderScores(favorites)
     if (btn) { btn.innerHTML = '&#x21bb;'; btn.style.opacity = '0.5'; btn.disabled = false }
   } catch (e) {
     if (btn) { btn.innerHTML = '&#x21bb;'; btn.style.opacity = '0.5'; btn.disabled = false }
