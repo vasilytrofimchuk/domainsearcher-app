@@ -638,6 +638,8 @@ async function refreshZones() {
 async function refreshAssociations() {
   const favorites = window._lastFavorites
   if (!favorites?.length) return
+  const btn = document.querySelector('button[onclick="refreshAssociations()"]')
+  if (btn) { btn.textContent = '⏳'; btn.style.opacity = '1'; btn.disabled = true }
   for (const d of favorites) { delete assocCache[d.id]; _loadedFavIds.delete(d.id) }
   const aiKey = loadSetting('aiApiKey') || undefined
   const assocPrompt = loadSetting('assocPrompt') || undefined
@@ -655,6 +657,7 @@ async function refreshAssociations() {
       }
     }
   } catch {}
+  if (btn) { btn.innerHTML = '&#x21bb;'; btn.style.opacity = '0.5'; btn.disabled = false }
 }
 
 function renderScores(favorites) {
