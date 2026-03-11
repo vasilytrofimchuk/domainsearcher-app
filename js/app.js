@@ -233,9 +233,11 @@ async function checkOne() {
     const nameClass = available === true ? 'text-green-700 font-semibold' : 'text-gray-400'
     const favBtn = '<button onclick="toggleCheckFav(\'' + record.id + '\',this)" class="ml-2">'
       + starIcon(record.favorite) + '</button>'
+    const domainLabel = available === false
+      ? '<a href="https://' + domain + '" target="_blank" rel="noopener" class="font-mono ' + nameClass + ' hover:underline">' + domain + '</a>'
+      : '<span class="font-mono ' + nameClass + '">' + domain + '</span>'
     html += '<div class="flex items-center gap-3 py-1">'
-      + '<span class="font-mono ' + nameClass + '">' + domain + '</span>'
-      + badge + favBtn + '</div>'
+      + domainLabel + badge + favBtn + '</div>'
   }
   resultDiv.innerHTML = html
   loadSaved()
