@@ -993,8 +993,36 @@ function resumeSearch() {
 }
 
 let _savedAiKey = ''
+
+function _updateProviderBadge(key) {
+  const label = document.getElementById('aiProviderLabel')
+  const badge = document.getElementById('aiProviderBadge')
+  const addBtn = document.getElementById('addKeyBtn')
+  const hasCustomKey = key && key.length > 0
+  const providerName = hasCustomKey ? detectProvider(key) : 'Groq'
+  label.textContent = providerName
+  if (hasCustomKey) {
+    badge.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200'
+    badge.querySelector('span').className = 'w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block'
+    addBtn.textContent = '✓ my key'
+    addBtn.className = 'text-xs text-cyan-600 border border-cyan-300 px-2.5 py-1 rounded-full'
+  } else {
+    badge.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200'
+    badge.querySelector('span').className = 'w-1.5 h-1.5 rounded-full bg-orange-400 inline-block'
+    addBtn.textContent = '+ add my key'
+    addBtn.className = 'text-xs text-gray-400 hover:text-cyan-600 border border-gray-200 hover:border-cyan-400 px-2.5 py-1 rounded-full transition-colors'
+  }
+}
+
+function toggleKeyInput() {
+  const row = document.getElementById('aiKeyRow')
+  const visible = !row.classList.contains('hidden')
+  row.classList.toggle('hidden', visible)
+  if (!visible) document.getElementById('aiKeyInput').focus()
+}
+
 function onAiKeyInput(val) {
-  document.getElementById('aiProviderLabel').textContent = detectProvider(val)
+  _updateProviderBadge(val)
   document.getElementById('saveAiKeyBtn').classList.toggle('hidden', val === _savedAiKey)
 }
 
@@ -1003,6 +1031,8 @@ function saveAiKey() {
   _savedAiKey = key
   saveSetting('aiApiKey', key)
   document.getElementById('saveAiKeyBtn').classList.add('hidden')
+  _updateProviderBadge(key)
+  if (!key) document.getElementById('aiKeyRow').classList.add('hidden')
   const el = document.getElementById('aiKeySaved')
   el.classList.remove('hidden')
   setTimeout(() => el.classList.add('hidden'), 2000)
@@ -1011,8 +1041,9 @@ function saveAiKey() {
 function clearAiKey() {
   document.getElementById('aiKeyInput').value = ''
   _savedAiKey = ''
-  document.getElementById('aiProviderLabel').textContent = 'Groq (default)'
+  _updateProviderBadge('')
   document.getElementById('saveAiKeyBtn').classList.add('hidden')
+  document.getElementById('aiKeyRow').classList.add('hidden')
   saveSetting('aiApiKey', '')
 }
 
@@ -1021,8 +1052,9 @@ function loadAiKey() {
   if (val) {
     _savedAiKey = val
     document.getElementById('aiKeyInput').value = val
-    document.getElementById('aiProviderLabel').textContent = detectProvider(val)
+    document.getElementById('aiKeyRow').classList.remove('hidden')
   }
+  _updateProviderBadge(val || '')
 }
 
 // --- Init ---
@@ -1063,6 +1095,7 @@ Object.assign(window, {
   resetPrompt,
   saveAssocPrompt,
   resetAssocPrompt,
+  toggleKeyInput,
   saveAiKey,
   clearAiKey,
   onAiKeyInput,
