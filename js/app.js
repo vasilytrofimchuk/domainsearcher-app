@@ -1042,6 +1042,9 @@ function loadFitContext() {
 }
 
 function saveWeights() {
+  // Skip save if any field is mid-edit (empty string) — avoid overwriting with 0
+  const ids = ['wLen', 'wPro', 'wMem', 'wBrd', 'wZon', 'wFit']
+  if (ids.some(id => { const el = document.getElementById(id); return el && el.value === '' })) return
   saveSetting('domainWeights', getWeights())
 }
 
