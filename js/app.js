@@ -1006,6 +1006,19 @@ function stopSearch() {
 }
 
 // --- Settings ---
+let _saveDescTimer = null
+function onDescriptionInput() {
+  clearTimeout(_saveDescTimer)
+  _saveDescTimer = setTimeout(() => {
+    saveSetting('description', document.getElementById('description').value)
+  }, 600)
+}
+
+function loadDescription() {
+  const val = loadSetting('description')
+  if (val) document.getElementById('description').value = val
+}
+
 let _saveFitTimer = null
 function onFitContextInput() {
   clearTimeout(_saveFitTimer)
@@ -1020,12 +1033,8 @@ function loadFitContext() {
   if (val != null) document.getElementById('fitContext').value = val
 }
 
-let _saveWeightsTimer = null
 function saveWeights() {
-  clearTimeout(_saveWeightsTimer)
-  _saveWeightsTimer = setTimeout(() => {
-    saveSetting('domainWeights', getWeights())
-  }, 600)
+  saveSetting('domainWeights', getWeights())
 }
 
 function loadWeights() {
@@ -1190,6 +1199,7 @@ loadGenPrompt()
 loadAssocPrompt()
 loadAiKey()
 loadFitContext()
+loadDescription()
 loadSaved()
 checkActiveSearch()
 
@@ -1227,6 +1237,7 @@ Object.assign(window, {
   clearAiKey,
   onAiKeyInput,
   onFitContextInput,
+  onDescriptionInput,
   saveWeights,
   dismissResume,
   resumeSearch,
