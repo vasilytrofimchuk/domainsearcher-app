@@ -47,6 +47,9 @@
     .zone-x:hover { opacity: 1; background: rgba(0,0,0,0.15); }
     #savedAvailList, #historyList { display: grid; grid-template-columns: repeat(2, 1fr); }
     @media (min-width: 640px) { #scoringSettings > :not(summary) { display: block !important; } }
+    #scoreCards { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px; }
+    #scoreTableWrapper { display: none; }
+    @media (min-width: 768px) { #scoreCards { display: none; } #scoreTableWrapper { display: block; } }
     #savedAvailList > div { border-bottom: 1px solid #dcfce7; border-right: 1px solid #dcfce7; }
     #historyList > div { border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; }
     @media (min-width: 640px)  { #savedAvailList, #historyList { grid-template-columns: repeat(3, 1fr); } }
@@ -247,7 +250,10 @@
                 </div>
               </details>
             </div>
-            <div class="overflow-x-auto">
+            <!-- Mobile: cards -->
+            <div id="scoreCards"></div>
+            <!-- Desktop: table -->
+            <div id="scoreTableWrapper" class="overflow-x-auto">
               <table id="scoreTable" class="w-full text-sm">
                 <thead class="bg-purple-50 text-purple-700">
                   <tr>
