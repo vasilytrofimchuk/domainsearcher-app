@@ -132,11 +132,13 @@ export async function scoreFitBatch(domains, context, apiKey, fitPrompt) {
   }
 }
 
-export const DEFAULT_ASSOC_PROMPT = `For each domain name stem, write exactly 3 short word-associations (2-4 words each, lowercase, no punctuation).
+export const DEFAULT_ASSOC_PROMPT = `For each domain name, write exactly 3 short word-associations (2-4 words each, lowercase, no punctuation).
+Consider both the stem AND the TLD when writing associations — the zone adds meaning (.ai = artificial intelligence, .io = developer tool / input-output, .app = mobile/web app, .dev = developer, .co = company, .so = social / solutions, .to = action/destination, .email = communication).
 Each association should capture a different angle: literal meaning, emotional feel, and use-case evocation.
 Be creative and specific — avoid generic words like "digital", "smart", "tech", "fast".
-Return ONLY valid JSON: {"stem": ["assoc1", "assoc2", "assoc3"], ...}
-Example: {"nexus": ["junction meeting point", "invisible web thread", "links flow bridge"], "lumo": ["warm amber glow", "spark of clarity", "gentle guiding light"]}`
+Return ONLY valid JSON using the stem (part before the dot) as the key: {"stem": ["assoc1", "assoc2", "assoc3"], ...}
+Example input: nexus.io, lumo.ai
+Example output: {"nexus": ["dev hub connector", "invisible web thread", "links flow bridge"], "lumo": ["ai clarity engine", "spark of insight", "gentle guiding intelligence"]}`
 
 export async function associateDomains(domains, apiKey, systemPrompt) {
   if (!domains.length) return {}
@@ -146,7 +148,7 @@ export async function associateDomains(domains, apiKey, systemPrompt) {
 
   const text = await aiChat([
     { role: 'system', content: systemPrompt || DEFAULT_ASSOC_PROMPT },
-    { role: 'user', content: stems.join('\n') },
+    { role: 'user', content: domains.join('\n') },
   ], apiKey)
 
   const jsonMatch = text.match(/\{[\s\S]*\}/)
