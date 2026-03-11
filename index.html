@@ -45,8 +45,11 @@
     .zone-compare-active { background: #8b5cf6 !important; color: white !important; border-color: #8b5cf6 !important; }
     .zone-x { font-size: 0.65rem; opacity: 0.45; line-height: 1; border-radius: 50%; padding: 0 1px; }
     .zone-x:hover { opacity: 1; background: rgba(0,0,0,0.15); }
+    #savedAvailList, #historyList { display: grid; grid-template-columns: repeat(2, 1fr); }
     #savedAvailList > div { border-bottom: 1px solid #dcfce7; border-right: 1px solid #dcfce7; }
     #historyList > div { border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; }
+    @media (min-width: 640px)  { #savedAvailList, #historyList { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 1024px) { #savedAvailList, #historyList { grid-template-columns: repeat(5, 1fr); } }
   </style>
 
   <div class="w-full max-w-[1800px] mx-auto px-4 lg:px-8 py-6">
@@ -168,7 +171,7 @@
       <div id="scoreSection" class="hidden">
         <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-purple-200">
           <div class="px-6 py-4 bg-purple-50 border-b border-purple-200">
-            <div class="flex items-center justify-between mb-2">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
               <h2 class="text-lg font-bold text-purple-800">Favorites <span class="text-purple-500 font-normal text-base ml-1">(<span id="favCount">0</span>)</span></h2>
               <div class="flex gap-2">
                 <button onclick="clearFavoritesOnly()" class="text-xs bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 px-3 py-1.5 rounded-lg font-medium transition-colors">Clear</button>
@@ -184,10 +187,10 @@
                 <span><b class="text-purple-600">ZON</b> free TLDs in selected zones</span>
                 <span><b class="text-purple-600">FIT</b> matches app idea (AI-scored)</span>
               </div>
-              <div class="flex items-center gap-2 mt-2">
+              <div class="flex flex-wrap items-center gap-2 mt-2">
                 <label class="text-xs font-medium text-purple-600 whitespace-nowrap">FIT context:</label>
                 <input id="fitContext" type="text" placeholder="Describe the app idea for FIT scoring..."
-                  class="flex-1 text-sm border border-purple-300 rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500 text-gray-700"
+                  class="flex-1 min-w-0 basis-40 text-sm border border-purple-300 rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500 text-gray-700"
                   oninput="onFitContextInput()" onkeydown="if(event.key==='Enter')rescoreFit()">
                 <button onclick="rescoreFit()" class="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded font-medium whitespace-nowrap">Re-score FIT</button>
               </div>
@@ -254,7 +257,7 @@
             <h2 class="text-lg font-bold text-green-800">Available Domains</h2>
             <span class="text-green-600 font-bold text-lg"><span id="savedAvailCount">0</span></span>
           </div>
-          <div id="savedAvailList" style="display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid #dcfce7"></div>
+          <div id="savedAvailList" class="border-t border-green-100"></div>
           <div id="savedAvailPager" class="flex items-center justify-center px-4 py-3 border-t border-green-100"></div>
         </div>
       </div>
@@ -270,7 +273,7 @@
               <button onclick="clearHistory()" class="text-xs text-red-400 hover:text-red-600">Clear All</button>
             </div>
           </div>
-          <div id="historyList" style="display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid #f3f4f6"></div>
+          <div id="historyList" class="border-t border-gray-100"></div>
           <div id="historyPager" class="flex items-center justify-center px-4 py-3 border-t border-gray-100"></div>
         </div>
       </div>
