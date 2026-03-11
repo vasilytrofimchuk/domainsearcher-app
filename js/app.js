@@ -804,6 +804,15 @@ function clearHistory() {
   loadSaved()
 }
 
+async function copyFavDomains() {
+  const favs = window._lastFavorites
+  if (!favs?.length) return
+  const text = favs.map(d => d.domain).join('\n')
+  await navigator.clipboard.writeText(text)
+  const btn = document.getElementById('copyFavsBtn')
+  if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500) }
+}
+
 function clearFavoritesOnly() {
   if (!confirm('Clear all favorites without saving?')) return
   db.clearFavorites()
@@ -1225,6 +1234,7 @@ Object.assign(window, {
   checkOne,
   deleteDomain,
   clearHistory,
+  copyFavDomains,
   clearFavoritesOnly,
   promptSaveFavs,
   restoreSet,
