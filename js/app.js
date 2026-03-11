@@ -91,67 +91,80 @@ function addCustomCompareZone() {
   saveCompareZones()
 }
 
-function getZoneState(selectorId, activeClass) {
+// Save/load zones for a selector. htmlDefaults = zones that have buttons in the HTML.
+// Any zone NOT in htmlDefaults needs to be recreated on load.
+function _saveZones(settingKey, selectorId, activeClass, htmlDefaults) {
   const all = Array.from(document.querySelectorAll('#' + selectorId + ' [data-zone]'))
-  const defaultZones = ['ai', 'com', 'io', 'app', 'dev', 'co', 'email', 'to', 'direct']
-  return {
+  saveSetting(settingKey, {
     active: all.filter(b => b.classList.contains(activeClass)).map(b => b.dataset.zone),
-    custom: all.filter(b => !defaultZones.includes(b.dataset.zone)).map(b => b.dataset.zone),
+    extra:  all.filter(b => !htmlDefaults.includes(b.dataset.zone)).map(b => b.dataset.zone),
+  })
+}
+
+function _loadZones(settingKey, selectorId, activeClass, htmlDefaults, makeBtn) {
+  const state = loadSetting(settingKey)
+  if (!state) return
+  const container = document.getElementById(selectorId)
+  // Toggle existing HTML-default buttons
+  container.querySelectorAll('[data-zone]').forEach(btn => {
+    if (htmlDefaults.includes(btn.dataset.zone))
+      btn.classList.toggle(activeClass, state.active.includes(btn.dataset.zone))
+  })
+  // Recreate any added zones that aren't in the HTML defaults
+  const toAdd = [...new Set([...(state.extra || []), ...(state.custom || [])])]
+  for (const z of toAdd) {
+    if (container.querySelector('[data-zone="' + z + '"]')) continue
+    const btn = makeBtn(z, state.active.includes(z))
+    container.insertBefore(btn, container.lastElementChild)
   }
 }
 
-function saveSearchZones() {
-  const state = getZoneState('zoneSelector', 'zone-active')
-  saveSetting('searchZones', state)
-}
+// Search zones — HTML defaults: ai com io app dev co email to direct
+const SEARCH_DEFAULTS  = ['ai', 'com', 'io', 'app', 'dev', 'co', 'email', 'to', 'direct']
+// Compare zones — HTML defaults: com io co app dev email to direct  (no ai)
+const COMPARE_DEFAULTS = ['com', 'io', 'co', 'app', 'dev', 'email', 'to', 'direct']
+// Check zones — HTML defaults: com io ai app co
+const CHECK_DEFAULTS   = ['com', 'io', 'ai', 'app', 'co']
 
+function saveSearchZones() {
+  _saveZones('searchZones', 'zoneSelector', 'zone-active', SEARCH_DEFAULTS)
+}
 function saveCompareZones() {
-  const state = getZoneState('compareZoneSelector', 'zone-compare-active')
-  saveSetting('compareZones', state)
+  _saveZones('compareZones', 'compareZoneSelector', 'zone-compare-active', COMPARE_DEFAULTS)
+}
+function saveCheckZones() {
+  _saveZones('checkZones', 'checkZoneSelector', 'zone-active', CHECK_DEFAULTS)
 }
 
 function loadSearchZones() {
-  const state = loadSetting('searchZones')
-  if (!state) return
-  const defaultZones = ['ai', 'com', 'io', 'app', 'dev', 'co', 'email', 'to', 'direct']
-  document.querySelectorAll('#zoneSelector [data-zone]').forEach(btn => {
-    const z = btn.dataset.zone
-    if (defaultZones.includes(z)) {
-      btn.classList.toggle('zone-active', state.active.includes(z))
-    }
-  })
-  const container = document.getElementById('zoneSelector')
-  for (const z of (state.custom || [])) {
-    if (document.querySelector('#zoneSelector [data-zone="' + z + '"]')) continue
+  _loadZones('searchZones', 'zoneSelector', 'zone-active', SEARCH_DEFAULTS, (z, active) => {
     const btn = document.createElement('button')
     btn.onclick = function(e) { if (!e.target.classList.contains('zone-x')) toggleSearchZone(this) }
     btn.dataset.zone = z
-    btn.className = 'zone-tag' + (state.active.includes(z) ? ' zone-active' : '')
+    btn.className = 'zone-tag' + (active ? ' zone-active' : '')
     btn.innerHTML = '.' + z + zoneX()
-    container.insertBefore(btn, container.lastElementChild)
-  }
-}
-
-function loadCompareZones() {
-  const state = loadSetting('compareZones')
-  if (!state) return
-  const defaultZones = ['com', 'io', 'app', 'dev', 'co', 'email', 'to', 'direct', 'ai']
-  document.querySelectorAll('#compareZoneSelector [data-zone]').forEach(btn => {
-    const z = btn.dataset.zone
-    if (defaultZones.includes(z)) {
-      btn.classList.toggle('zone-compare-active', state.active.includes(z))
-    }
+    return btn
   })
-  const container = document.getElementById('compareZoneSelector')
-  for (const z of (state.custom || [])) {
-    if (document.querySelector('#compareZoneSelector [data-zone="' + z + '"]')) continue
+}
+function loadCompareZones() {
+  _loadZones('compareZones', 'compareZoneSelector', 'zone-compare-active', COMPARE_DEFAULTS, (z, active) => {
     const btn = document.createElement('button')
     btn.onclick = function(e) { if (!e.target.classList.contains('zone-x')) toggleCompareZone(this) }
     btn.dataset.zone = z
-    btn.className = 'zone-tag' + (state.active.includes(z) ? ' zone-compare-active' : '')
+    btn.className = 'zone-tag' + (active ? ' zone-compare-active' : '')
     btn.innerHTML = '.' + z + zoneX()
-    container.insertBefore(btn, container.lastElementChild)
-  }
+    return btn
+  })
+}
+function loadCheckZones() {
+  _loadZones('checkZones', 'checkZoneSelector', 'zone-active', CHECK_DEFAULTS, (z, active) => {
+    const btn = document.createElement('button')
+    btn.onclick = function() { toggleCheckZone(this) }
+    btn.dataset.zone = z
+    btn.className = 'zone-tag' + (active ? ' zone-active' : '')
+    btn.innerHTML = '.' + z + zoneX()
+    return btn
+  })
 }
 
 // --- Quick check zones ---
@@ -160,29 +173,6 @@ function getCheckZones() {
     .map(b => b.dataset.zone).filter(Boolean)
 }
 
-function saveCheckZones() {
-  saveSetting('checkZones', getZoneState('checkZoneSelector', 'zone-active'))
-}
-
-function loadCheckZones() {
-  const state = loadSetting('checkZones')
-  if (!state) return
-  const defaultZones = ['com', 'io', 'ai', 'app', 'co']
-  document.querySelectorAll('#checkZoneSelector [data-zone]').forEach(btn => {
-    if (defaultZones.includes(btn.dataset.zone))
-      btn.classList.toggle('zone-active', state.active.includes(btn.dataset.zone))
-  })
-  const container = document.getElementById('checkZoneSelector')
-  for (const z of (state.custom || [])) {
-    if (container.querySelector('[data-zone="' + z + '"]')) continue
-    const btn = document.createElement('button')
-    btn.dataset.zone = z
-    btn.onclick = function() { toggleCheckZone(this) }
-    btn.className = 'zone-tag' + (state.active.includes(z) ? ' zone-active' : '')
-    btn.innerHTML = '.' + z + zoneX()
-    container.insertBefore(btn, container.lastElementChild)
-  }
-}
 
 function toggleCheckZone(btn) {
   if (event.target.classList.contains('zone-x')) return
