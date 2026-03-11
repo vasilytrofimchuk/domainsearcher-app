@@ -224,12 +224,14 @@
               <!-- Settings (collapsible on mobile, always open on desktop) -->
               <details id="scoringSettings" open class="mt-2">
                 <summary class="sm:hidden cursor-pointer text-xs font-medium text-purple-500 select-none mb-2">▾ scoring settings</summary>
-                <div class="flex flex-wrap items-center gap-2 mt-1">
-                  <label class="text-xs font-medium text-purple-600 whitespace-nowrap">FIT context:</label>
+                <div class="mt-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <label class="text-xs font-medium text-purple-600 whitespace-nowrap">FIT context:</label>
+                    <button onclick="rescoreFit()" class="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded font-medium whitespace-nowrap">Re-score FIT</button>
+                  </div>
                   <input id="fitContext" type="text" placeholder="Describe the app idea for FIT scoring..."
-                    class="flex-1 min-w-0 basis-40 text-sm border border-purple-300 rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500 text-gray-700"
+                    class="w-full text-sm border border-purple-300 rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500 text-gray-700"
                     oninput="onFitContextInput()" onkeydown="if(event.key==='Enter')rescoreFit()">
-                  <button onclick="rescoreFit()" class="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded font-medium whitespace-nowrap">Re-score FIT</button>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 mt-2">
                   <label class="text-xs font-medium text-purple-600 whitespace-nowrap">Compare zones:</label>
