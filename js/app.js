@@ -929,7 +929,7 @@ async function startSearch() {
         if (signal.aborted) break
 
         const domain = name + '.' + zone
-        document.getElementById('statusMsg').textContent = 'Checking ' + domain + '...'
+        document.getElementById('statusMsg').textContent = 'Checking ' + domain + '... (' + (idx + 1) + '/' + total + ')'
 
         const available = await checkDomainAvailable(domain, signal)
         if (signal.aborted) break
@@ -962,7 +962,6 @@ async function startSearch() {
         }
 
         idx++
-        document.getElementById('statusMsg').textContent = 'Checked ' + idx + '/' + total + ' domains...'
       }
     }
   } catch (e) {
