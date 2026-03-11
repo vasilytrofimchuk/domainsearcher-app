@@ -233,6 +233,16 @@
                     onblur="this.style.boxShadow='';this.style.borderColor='#d8b4fe'">
                   <button onclick="rescoreFit()" class="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded font-medium whitespace-nowrap">Re-score FIT</button>
                 </div>
+                <!-- FIT prompt (collapsible) -->
+                <div class="mt-2">
+                  <div class="flex items-center gap-3">
+                    <button onclick="document.getElementById('fitPromptBox').classList.toggle('hidden')" class="text-xs text-purple-400 hover:text-purple-600">&#9660; fit scoring prompt</button>
+                    <button id="saveFitPromptBtn" onclick="saveFitPrompt(true)" class="hidden text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold px-3 py-1 rounded-lg transition-colors">Save prompt</button>
+                    <button onclick="resetFitPrompt()" class="text-xs text-gray-300 hover:text-gray-500">reset default</button>
+                    <span id="fitPromptSaved" class="text-xs text-green-500 hidden">saved</span>
+                  </div>
+                  <textarea id="fitPromptBox" rows="6" class="hidden mt-1 w-full border border-purple-100 rounded-lg px-3 py-2 text-xs font-mono text-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-400 resize-y"></textarea>
+                </div>
                 <div class="flex flex-wrap items-center gap-2 mt-2">
                   <label class="text-xs font-medium text-purple-600 whitespace-nowrap">Compare zones:</label>
                   <div id="compareZoneSelector" class="flex flex-wrap items-center gap-1.5">

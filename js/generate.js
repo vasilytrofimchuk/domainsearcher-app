@@ -97,22 +97,24 @@ export async function generateDomainNames(description, systemPrompt, apiKey) {
     .filter(n => n.length >= 2)
 }
 
-export async function scoreFitBatch(domains, context, apiKey) {
-  if (!domains.length || !context.trim()) return {}
-
-  const text = await aiChat([
-    {
-      role: 'system',
-      content: `Score how well each domain name fits the app idea described below. Consider:
+export const DEFAULT_FIT_PROMPT = `Score how well each domain name fits the app idea described below. Consider:
 - Can a user guess what the app does from the domain name?
 - Does the name evoke the right associations/feelings?
 - Is the name relevant to the described functionality?
 
-The app idea/theme: "${context}"
+The app idea/theme: "{{context}}"
 
 Score each domain 0-10 (10 = perfectly evocative, 0 = completely unrelated).
-Return ONLY a JSON object mapping domain names to scores. Example: {"copygen.ai": 8, "wordblast.ai": 5}`,
-    },
+Return ONLY a JSON object mapping domain names to scores. Example: {"copygen.ai": 8, "wordblast.ai": 5}`
+
+export async function scoreFitBatch(domains, context, apiKey, fitPrompt) {
+  if (!domains.length || !context.trim()) return {}
+
+  const promptTemplate = fitPrompt || DEFAULT_FIT_PROMPT
+  const systemContent = promptTemplate.replace('{{context}}', context)
+
+  const text = await aiChat([
+    { role: 'system', content: systemContent },
     { role: 'user', content: domains.join('\n') },
   ], apiKey)
 

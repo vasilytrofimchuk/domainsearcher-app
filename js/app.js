@@ -1,6 +1,6 @@
 import { db, saveSetting, loadSetting } from './storage.js'
 import { checkDomainAvailable, checkMultipleZones } from './check.js'
-import { generateDomainNames, scoreFitBatch, associateDomains, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT } from './generate.js'
+import { generateDomainNames, scoreFitBatch, associateDomains, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT } from './generate.js'
 
 // Active search controller
 let _abortController = null
@@ -702,8 +702,9 @@ async function rescoreFit() {
   renderScores(favorites)
 
   const aiKey = loadSetting('aiApiKey') || undefined
+  const fitPrompt = loadSetting('fitPrompt') || undefined
   try {
-    const scores = await scoreFitBatch(favorites.map(d => d.domain), context, aiKey)
+    const scores = await scoreFitBatch(favorites.map(d => d.domain), context, aiKey, fitPrompt)
     for (const d of favorites) {
       if (scores[d.domain] !== undefined) {
         const fitScore = Math.min(10, Math.max(0, Math.round(scores[d.domain])))
@@ -1125,6 +1126,33 @@ function saveAssocPrompt(showConfirm) {
   }
 }
 
+let _savedFitPromptValue = ''
+function loadFitPrompt() {
+  const val = loadSetting('fitPrompt')
+  _savedFitPromptValue = val || DEFAULT_FIT_PROMPT
+  document.getElementById('fitPromptBox').value = _savedFitPromptValue
+  document.getElementById('fitPromptBox').addEventListener('input', () => {
+    const changed = document.getElementById('fitPromptBox').value !== _savedFitPromptValue
+    document.getElementById('saveFitPromptBtn').classList.toggle('hidden', !changed)
+  })
+}
+
+function resetFitPrompt() {
+  document.getElementById('fitPromptBox').value = DEFAULT_FIT_PROMPT
+  saveFitPrompt()
+}
+
+function saveFitPrompt(showConfirm) {
+  _savedFitPromptValue = document.getElementById('fitPromptBox').value
+  saveSetting('fitPrompt', _savedFitPromptValue)
+  document.getElementById('saveFitPromptBtn').classList.add('hidden')
+  if (showConfirm) {
+    const el = document.getElementById('fitPromptSaved')
+    el.classList.remove('hidden')
+    setTimeout(() => el.classList.add('hidden'), 2000)
+  }
+}
+
 function checkActiveSearch() {
   const job = loadSetting('activeSearch')
   if (!job) return
@@ -1218,6 +1246,7 @@ loadCompareZones()
 loadCheckZones()
 loadGenPrompt()
 loadAssocPrompt()
+loadFitPrompt()
 loadAiKey()
 loadFitContext()
 loadDescription()
@@ -1254,6 +1283,8 @@ Object.assign(window, {
   resetPrompt,
   saveAssocPrompt,
   resetAssocPrompt,
+  saveFitPrompt,
+  resetFitPrompt,
   toggleKeyInput,
   saveAiKey,
   clearAiKey,
