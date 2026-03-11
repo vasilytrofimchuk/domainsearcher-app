@@ -645,6 +645,8 @@ async function refreshAssociations() {
   const assocPrompt = loadSetting('assocPrompt') || undefined
   try {
     const assocs = await associateDomains(favorites.map(d => d.domain), aiKey, assocPrompt)
+    const updated = Object.keys(assocs).length
+    if (!updated) throw new Error('AI returned no associations — check API key or prompt')
     for (const d of favorites) {
       if (assocs[d.domain]) {
         assocCache[d.id] = assocs[d.domain]
@@ -656,8 +658,11 @@ async function refreshAssociations() {
         }
       }
     }
-  } catch {}
-  if (btn) { btn.innerHTML = '&#x21bb;'; btn.style.opacity = '0.5'; btn.disabled = false }
+    if (btn) { btn.innerHTML = '&#x21bb;'; btn.style.opacity = '0.5'; btn.disabled = false }
+  } catch (e) {
+    if (btn) { btn.innerHTML = '&#x21bb;'; btn.style.opacity = '0.5'; btn.disabled = false }
+    alert('Association refresh failed: ' + e.message)
+  }
 }
 
 function renderScores(favorites) {
