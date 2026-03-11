@@ -95,15 +95,23 @@
         <!-- Search Form -->
         <div class="bg-white rounded-xl shadow-lg p-6">
           <!-- AI Key row -->
-          <div class="flex items-center gap-3 flex-wrap mb-4 pb-4 border-b border-gray-100">
-            <label class="text-xs font-medium text-gray-500 whitespace-nowrap">AI provider</label>
-            <span id="aiProviderLabel" class="text-xs font-semibold text-gray-400">Groq (default)</span>
-            <input id="aiKeyInput" type="password" placeholder="paste OpenAI / Claude / Groq key to override"
-              class="flex-1 min-w-0 border border-gray-200 rounded px-3 py-1.5 text-xs font-mono text-gray-700 focus:outline-none focus:ring-1 focus:ring-cyan-400"
-              oninput="onAiKeyInput(this.value)">
-            <button id="saveAiKeyBtn" onclick="saveAiKey()" class="hidden text-sm bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-3 py-1 rounded-lg transition-colors">Save</button>
-            <button onclick="clearAiKey()" class="text-xs text-gray-300 hover:text-red-400">clear</button>
-            <span id="aiKeySaved" class="text-xs text-green-500 hidden">saved</span>
+          <div class="mb-4 pb-4 border-b border-gray-100">
+            <div class="flex items-center gap-2 flex-wrap">
+              <label class="text-xs font-medium text-gray-400 whitespace-nowrap">AI model</label>
+              <span id="aiProviderBadge" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block"></span>
+                <span id="aiProviderLabel">Groq</span>
+              </span>
+              <button id="addKeyBtn" onclick="toggleKeyInput()" class="text-xs text-gray-400 hover:text-cyan-600 border border-gray-200 hover:border-cyan-400 px-2.5 py-1 rounded-full transition-colors">+ add my key</button>
+              <span id="aiKeySaved" class="text-xs text-green-500 hidden">saved</span>
+            </div>
+            <div id="aiKeyRow" class="hidden mt-2 flex items-center gap-2 flex-wrap">
+              <input id="aiKeyInput" type="password" placeholder="paste Groq / OpenAI / Claude key"
+                class="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-mono text-gray-700 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                oninput="onAiKeyInput(this.value)">
+              <button id="saveAiKeyBtn" onclick="saveAiKey()" class="hidden text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">Save key</button>
+              <button onclick="clearAiKey()" class="text-xs text-gray-300 hover:text-red-400 whitespace-nowrap">clear</button>
+            </div>
           </div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Describe your idea</label>
           <textarea id="description" rows="3" placeholder="e.g. AI tool for generating marketing copy and ad creatives"
