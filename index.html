@@ -46,6 +46,7 @@
     .zone-x { font-size: 0.65rem; opacity: 0.45; line-height: 1; border-radius: 50%; padding: 0 1px; }
     .zone-x:hover { opacity: 1; background: rgba(0,0,0,0.15); }
     #savedAvailList, #historyList { display: grid; grid-template-columns: repeat(2, 1fr); }
+    @media (min-width: 640px) { #scoringSettings > :not(summary) { display: block !important; } }
     #savedAvailList > div { border-bottom: 1px solid #dcfce7; border-right: 1px solid #dcfce7; }
     #historyList > div { border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; }
     @media (min-width: 640px)  { #savedAvailList, #historyList { grid-template-columns: repeat(3, 1fr); } }
@@ -197,7 +198,7 @@
               </div>
             </div>
             <div class="text-lg font-bold text-purple-800 hidden">Score Comparison</div>
-              <div class="flex flex-wrap gap-x-5 gap-y-0.5 mt-1 text-xs text-purple-400">
+              <div class="hidden sm:flex flex-wrap gap-x-5 gap-y-0.5 mt-1 text-xs text-purple-400">
                 <span><b class="text-purple-600">LEN</b> shorter name (5 chars = 10)</span>
                 <span><b class="text-purple-600">PRO</b> easy to pronounce (syllables)</span>
                 <span><b class="text-purple-600">MEM</b> memorable (avoids generic suffixes)</span>
@@ -205,42 +206,46 @@
                 <span><b class="text-purple-600">ZON</b> free TLDs in selected zones</span>
                 <span><b class="text-purple-600">FIT</b> matches app idea (AI-scored)</span>
               </div>
-              <div class="flex flex-wrap items-center gap-2 mt-2">
-                <label class="text-xs font-medium text-purple-600 whitespace-nowrap">FIT context:</label>
-                <input id="fitContext" type="text" placeholder="Describe the app idea for FIT scoring..."
-                  class="flex-1 min-w-0 basis-40 text-sm border border-purple-300 rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500 text-gray-700"
-                  oninput="onFitContextInput()" onkeydown="if(event.key==='Enter')rescoreFit()">
-                <button onclick="rescoreFit()" class="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded font-medium whitespace-nowrap">Re-score FIT</button>
-              </div>
-              <div class="flex flex-wrap items-center gap-2 mt-2">
-                <label class="text-xs font-medium text-purple-600 whitespace-nowrap">Compare zones:</label>
-                <div id="compareZoneSelector" class="flex flex-wrap items-center gap-1.5">
-                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="com" class="zone-tag zone-compare-active">.com <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
-                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="io" class="zone-tag zone-compare-active">.io <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
-                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="co" class="zone-tag zone-compare-active">.co <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
-                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="app" class="zone-tag zone-compare-active">.app <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
-                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="dev" class="zone-tag zone-compare-active">.dev <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
-                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="email" class="zone-tag">.email <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
-                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="to" class="zone-tag">.to <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
-                  <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="direct" class="zone-tag">.direct <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
-                  <div class="flex items-center gap-1">
-                    <span class="text-gray-400 text-xs">.</span>
-                    <input id="customCompareZone" type="text" placeholder="custom" class="w-16 text-xs border border-gray-300 rounded px-1.5 py-0.5 font-mono focus:outline-none focus:ring-1 focus:ring-purple-400"
-                      onkeydown="if(event.key==='Enter'){addCustomCompareZone()}">
-                    <button onclick="addCustomCompareZone()" class="text-xs text-purple-500 hover:text-purple-700 font-medium">+</button>
+              <!-- Settings (collapsible on mobile, always open on desktop) -->
+              <details id="scoringSettings" class="mt-2">
+                <summary class="sm:hidden cursor-pointer text-xs font-medium text-purple-500 select-none mb-2">▾ scoring settings</summary>
+                <div class="flex flex-wrap items-center gap-2 mt-1">
+                  <label class="text-xs font-medium text-purple-600 whitespace-nowrap">FIT context:</label>
+                  <input id="fitContext" type="text" placeholder="Describe the app idea for FIT scoring..."
+                    class="flex-1 min-w-0 basis-40 text-sm border border-purple-300 rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500 text-gray-700"
+                    oninput="onFitContextInput()" onkeydown="if(event.key==='Enter')rescoreFit()">
+                  <button onclick="rescoreFit()" class="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded font-medium whitespace-nowrap">Re-score FIT</button>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 mt-2">
+                  <label class="text-xs font-medium text-purple-600 whitespace-nowrap">Compare zones:</label>
+                  <div id="compareZoneSelector" class="flex flex-wrap items-center gap-1.5">
+                    <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="com" class="zone-tag zone-compare-active">.com <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                    <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="io" class="zone-tag zone-compare-active">.io <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                    <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="co" class="zone-tag zone-compare-active">.co <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                    <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="app" class="zone-tag zone-compare-active">.app <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                    <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="dev" class="zone-tag zone-compare-active">.dev <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                    <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="email" class="zone-tag">.email <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                    <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="to" class="zone-tag">.to <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                    <button onclick="if(!event.target.classList.contains('zone-x'))toggleCompareZone(this)" data-zone="direct" class="zone-tag">.direct <span class="zone-x" onclick="removeZone(event,this)">&#x2715;</span></button>
+                    <div class="flex items-center gap-1">
+                      <span class="text-gray-400 text-xs">.</span>
+                      <input id="customCompareZone" type="text" placeholder="custom" class="w-16 text-xs border border-gray-300 rounded px-1.5 py-0.5 font-mono focus:outline-none focus:ring-1 focus:ring-purple-400"
+                        onkeydown="if(event.key==='Enter'){addCustomCompareZone()}">
+                      <button onclick="addCustomCompareZone()" class="text-xs text-purple-500 hover:text-purple-700 font-medium">+</button>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <!-- Association prompt (collapsible) -->
-              <div class="mt-2">
-                <div class="flex items-center gap-3">
-                  <button onclick="document.getElementById('assocPromptBox').classList.toggle('hidden')" class="text-xs text-purple-400 hover:text-purple-600">&#9660; association prompt</button>
-                  <button id="saveAssocPromptBtn" onclick="saveAssocPrompt(true)" class="hidden text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold px-3 py-1 rounded-lg transition-colors">Save prompt</button>
-                  <button onclick="resetAssocPrompt()" class="text-xs text-gray-300 hover:text-gray-500">reset default</button>
-                  <span id="assocPromptSaved" class="text-xs text-green-500 hidden">saved</span>
+                <!-- Association prompt (collapsible) -->
+                <div class="mt-2">
+                  <div class="flex items-center gap-3">
+                    <button onclick="document.getElementById('assocPromptBox').classList.toggle('hidden')" class="text-xs text-purple-400 hover:text-purple-600">&#9660; association prompt</button>
+                    <button id="saveAssocPromptBtn" onclick="saveAssocPrompt(true)" class="hidden text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold px-3 py-1 rounded-lg transition-colors">Save prompt</button>
+                    <button onclick="resetAssocPrompt()" class="text-xs text-gray-300 hover:text-gray-500">reset default</button>
+                    <span id="assocPromptSaved" class="text-xs text-green-500 hidden">saved</span>
+                  </div>
+                  <textarea id="assocPromptBox" rows="5" class="hidden mt-1 w-full border border-purple-100 rounded-lg px-3 py-2 text-xs font-mono text-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-400 resize-y"></textarea>
                 </div>
-                <textarea id="assocPromptBox" rows="5" class="hidden mt-1 w-full border border-purple-100 rounded-lg px-3 py-2 text-xs font-mono text-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-400 resize-y"></textarea>
-              </div>
+              </details>
             </div>
             <div class="overflow-x-auto">
               <table id="scoreTable" class="w-full text-sm">
