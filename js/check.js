@@ -1,15 +1,39 @@
 /**
- * Domain availability checking via RDAP (rdap.org)
+ * Domain availability checking via RDAP (rdap.org) + DNS-over-HTTPS fallback
  * rdap.org is CORS-enabled — browser can call directly, no proxy needed.
- * GET not HEAD (some servers return 405 on HEAD)
+ * Cloudflare DoH (1.1.1.1/dns-query) is also CORS-enabled.
  * Returns: true = available, false = taken, null = unknown (error / unexpected status)
+ *
+ * Two-stage for short labels (≤2 chars):
+ *   1. RDAP: 200 = taken (done). 404 = maybe available (proceed to stage 2).
+ *   2. DoH NS lookup: NXDOMAIN = available, has NS = taken, else unknown.
+ *   Reason: some registries return RDAP 404 for reserved/premium short domains
+ *   (e.g. dm.io is registered but .io RDAP says 404). Every registered domain
+ *   must have NS records, so DoH is a reliable secondary signal.
  */
 
+async function checkViaDoh(domain, signal) {
+  try {
+    const url = 'https://cloudflare-dns.com/dns-query?name=' + encodeURIComponent(domain) + '&type=NS'
+    const res = await fetch(url, {
+      headers: { Accept: 'application/dns-json' },
+      signal: signal ?? AbortSignal.timeout(6000),
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    // Status 3 = NXDOMAIN → domain not in DNS → available
+    if (data.Status === 3) return true
+    // Status 0 with NS Answer records → domain registered → taken
+    if (data.Status === 0 && data.Answer?.some(r => r.type === 2)) return false
+    return null
+  } catch {
+    return null
+  }
+}
+
 export async function checkDomainAvailable(domain, signal) {
-  // 2-char labels are almost always reserved; RDAP registries often return 404
-  // for reserved/premium domains rather than 200, producing false "available"
   const label = domain.split('.')[0]
-  if (label.length <= 2) return null
+  const isShort = label.length <= 2
 
   try {
     const res = await fetch('https://rdap.org/domain/' + domain, {
@@ -17,9 +41,15 @@ export async function checkDomainAvailable(domain, signal) {
       redirect: 'follow',
       signal: signal ?? AbortSignal.timeout(10000),
     })
-    if (res.status === 404) return true    // not registered = available
-    if (res.status === 200) return false   // registered = taken
-    return null                            // 400/422/503/etc — can't tell
+    if (res.status === 200) return false   // registered = taken (trust this always)
+    if (res.status === 404) {
+      if (isShort) {
+        // RDAP 404 is unreliable for short labels — confirm via DNS
+        return await checkViaDoh(domain, signal)
+      }
+      return true    // not registered = available
+    }
+    return null      // 400/422/503/etc — can't tell
   } catch {
     return null  // CORS block, timeout, network error — don't assume taken
   }
