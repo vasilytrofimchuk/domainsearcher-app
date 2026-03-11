@@ -6,6 +6,11 @@
  */
 
 export async function checkDomainAvailable(domain, signal) {
+  // 2-char labels are almost always reserved; RDAP registries often return 404
+  // for reserved/premium domains rather than 200, producing false "available"
+  const label = domain.split('.')[0]
+  if (label.length <= 2) return null
+
   try {
     const res = await fetch('https://rdap.org/domain/' + domain, {
       method: 'GET',

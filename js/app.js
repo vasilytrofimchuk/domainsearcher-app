@@ -271,9 +271,11 @@ function toggleSuper(id) {
 }
 
 function domainRow(d, opts = {}) {
-  const badge = opts.noBadge ? '' : (d.available
+  const badge = opts.noBadge ? '' : (d.available === true
     ? '<span class="text-green-600 text-xs font-medium">✓</span>'
-    : '<span class="text-red-300 text-xs">✗</span>')
+    : d.available === false
+      ? '<span class="text-red-300 text-xs">✗</span>'
+      : '<span class="text-yellow-500 text-xs" title="RDAP check inconclusive — short domains and some registries are unreliable">?</span>')
   const star = '<button onclick="toggleFav(\'' + d.id + '\')">' + starIcon(d.favorite) + '</button>'
   const superStar = opts.showSuper
     ? '<button onclick="toggleSuper(\'' + d.id + '\')" title="Super favorite">' + doubleStarIcon(d.superFavorite) + '</button>'
@@ -284,7 +286,7 @@ function domainRow(d, opts = {}) {
   const desc = opts.showDesc && d.description
     ? '<span class="text-xs text-gray-400 ml-3">' + d.description.slice(0, 40) + '</span>'
     : ''
-  const nameClass = d.available ? (opts.bold ? 'text-green-800 font-semibold' : 'text-green-700 font-semibold text-sm') : 'text-gray-400 text-sm'
+  const nameClass = d.available === true ? (opts.bold ? 'text-green-800 font-semibold' : 'text-green-700 font-semibold text-sm') : 'text-gray-400 text-sm'
   const rowBg = d.superFavorite && opts.showSuper ? ' bg-orange-50' : ''
   const zonesId = opts.showZones ? 'zones-' + d.id : ''
   const zonesRow = opts.showZones
@@ -934,10 +936,9 @@ async function startSearch() {
         const available = await checkDomainAvailable(domain, signal)
         if (signal.aborted) break
 
-        const isAvailable = available === true
-        const record = db.upsert(domain, { domain, available: isAvailable, description: desc }, { available: isAvailable, description: desc })
+        const record = db.upsert(domain, { domain, available, description: desc }, { available, description: desc })
 
-        if (typeof gtag !== 'undefined' && isAvailable) gtag('event', 'domain_available', { domain })
+        if (typeof gtag !== 'undefined' && available === true) gtag('event', 'domain_available', { domain })
 
         // Append to history
         const historySection = document.getElementById('historySection')
@@ -949,8 +950,8 @@ async function startSearch() {
         const ht = document.getElementById('historyTotal')
         ht.textContent = parseInt(ht.textContent || '0') + 1
 
-        // Append available to saved section
-        if (isAvailable) {
+        // Append available to saved section (not unknown)
+        if (available === true) {
           const savedSection = document.getElementById('savedSection')
           savedSection.classList.remove('hidden')
           const savedList = document.getElementById('savedAvailList')
