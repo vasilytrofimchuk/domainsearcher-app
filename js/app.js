@@ -1250,6 +1250,7 @@ Object.assign(window, {
   onFitContextInput,
   onDescriptionInput,
   saveWeights,
+  renderScores,
   dismissResume,
   resumeSearch,
   toggleMenu,
