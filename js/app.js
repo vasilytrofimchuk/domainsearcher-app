@@ -49,8 +49,6 @@ function zoneX() {
 
 function toggleSearchZone(btn) {
   btn.classList.toggle('zone-active')
-  const zones = getSelectedZones()
-  document.getElementById('checkZoneLabel').textContent = _zoneLabel(zones)
   saveSearchZones()
 }
 
@@ -72,7 +70,6 @@ function addCustomZone() {
   btn.innerHTML = '.' + zone + zoneX()
   const container = document.getElementById('zoneSelector')
   container.insertBefore(btn, container.lastElementChild)
-  document.getElementById('checkZoneLabel').textContent = _zoneLabel(getSelectedZones())
   input.value = ''
   saveSearchZones()
 }
@@ -133,7 +130,6 @@ function loadSearchZones() {
     btn.innerHTML = '.' + z + zoneX()
     container.insertBefore(btn, container.lastElementChild)
   }
-  document.getElementById('checkZoneLabel').textContent = _zoneLabel(getSelectedZones())
 }
 
 function loadCompareZones() {
@@ -158,10 +154,36 @@ function loadCompareZones() {
   }
 }
 
+// --- Quick check zones ---
+function getCheckZones() {
+  return [...document.querySelectorAll('#checkZoneSelector .zone-tag.zone-active')]
+    .map(b => b.dataset.zone).filter(Boolean)
+}
+
+function toggleCheckZone(btn) {
+  if (event.target.classList.contains('zone-x')) return
+  btn.classList.toggle('zone-active')
+}
+
+function addCustomCheckZone() {
+  const input = document.getElementById('customCheckZone')
+  const zone = input.value.trim().toLowerCase().replace(/^\./, '').replace(/[^a-z0-9]/g, '')
+  if (!zone) return
+  const container = document.getElementById('checkZoneSelector')
+  if ([...container.querySelectorAll('.zone-tag')].some(b => b.dataset.zone === zone)) { input.value = ''; return }
+  const btn = document.createElement('button')
+  btn.dataset.zone = zone
+  btn.onclick = function() { toggleCheckZone(this) }
+  btn.className = 'zone-tag zone-active'
+  btn.innerHTML = '.' + zone + zoneX()
+  container.insertBefore(btn, container.lastElementChild)
+  input.value = ''
+}
+
 // --- Quick check ---
 async function checkOne() {
   const input = document.getElementById('checkDomain')
-  const zones = getSelectedZones()
+  const zones = getCheckZones()
   const name = input.value.trim().toLowerCase().replace(/\.[a-z]+$/, '').replace(/[^a-z0-9]/g, '')
   if (!name) return
   const resultDiv = document.getElementById('checkResult')
@@ -1093,6 +1115,8 @@ Object.assign(window, {
   refreshZones,
   refreshAssociations,
   toggleSearchZone,
+  toggleCheckZone,
+  addCustomCheckZone,
   toggleCompareZone,
   removeZone,
   addCustomZone,
