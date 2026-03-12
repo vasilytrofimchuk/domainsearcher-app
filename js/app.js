@@ -1,6 +1,6 @@
-import { db, saveSetting, loadSetting } from './storage.js?v=9'
-import { checkDomainAvailable, checkMultipleZones } from './check.js?v=9'
-import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=9'
+import { db, saveSetting, loadSetting } from './storage.js?v=10'
+import { checkDomainAvailable, checkMultipleZones } from './check.js?v=10'
+import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=10'
 
 // Active search controller
 let _abortController = null
@@ -521,7 +521,7 @@ function scoreCard(s, rank) {
     + '<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">'
     +   '<span style="font-size:11px;color:#a78bfa">TOTAL</span>'
     +   '<span style="font-size:18px;font-weight:800;color:' + totalColor + ';background:' + totalBg + ';padding:2px 10px;border-radius:8px">' + scores.total + '</span>'
-    +   '<span style="font-size:11px;color:#d1d5db">/' + mx + '</span>'
+    +   ''
     + '</div>'
     + '</div>'
 }
@@ -560,7 +560,7 @@ function scoreRow(s, rank) {
     + '<td class="py-2" style="width:52px">' + scoreCell(scores.zon, w.zon) + '</td>'
     + '<td class="py-2" style="width:52px">' + scoreCell(scores.fit, w.fit) + '</td>'
     })()
-    + '<td class="py-2 text-center" style="width:70px"><span class="font-bold text-base ' + totalColor + ' px-1.5 py-0.5 rounded">' + scores.total + '</span><div class="text-xs text-gray-400">/' + mx + '</div></td>'
+    + '<td class="py-2 text-center" style="width:70px"><span class="font-bold text-base ' + totalColor + ' px-1.5 py-0.5 rounded">' + scores.total + '</span></td>'
     + '<td class="py-2" style="width:80px">' + scoreBar(scores.total, mx) + '</td>'
     + '<td class="px-2 py-2 text-center whitespace-nowrap" style="min-width:90px">'
     + '<div class="flex items-center justify-center gap-2">' + superBtn + starBtn + delBtn + '</div>'
