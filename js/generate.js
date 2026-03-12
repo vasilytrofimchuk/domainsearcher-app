@@ -106,15 +106,14 @@ export async function generateDomainNames(description, systemPrompt, apiKey) {
     .filter(n => n.length >= 2)
 }
 
-export const DEFAULT_FIT_PROMPT = `Score how well each domain name fits the app idea described below. Consider:
-- Can a user guess what the app does from the domain name?
-- Does the name evoke the right associations/feelings?
-- Is the name relevant to the described functionality?
+export const DEFAULT_FIT_PROMPT = `Score each domain name on four dimensions (0–10 each):
+- FIT: how well the name evokes the app idea "{{context}}" (10 = perfectly evocative, 0 = unrelated)
+- PRO: how easy and natural it is to pronounce out loud (10 = flows perfectly, 0 = unpronounceable)
+- MEM: how memorable and sticky the name is (10 = instantly memorable, 0 = completely forgettable)
+- BRD: brandability — unique, catchy, ownable as a brand (10 = outstanding brand name, 0 = totally generic)
 
-The app idea/theme: "{{context}}"
-
-Score each domain 0-10 (10 = perfectly evocative, 0 = completely unrelated).
-Return ONLY a JSON object mapping domain names to scores. Example: {"copygen.ai": 8, "wordblast.ai": 5}`
+Return ONLY a JSON object. Example:
+{"copygen.ai": {"fit": 8, "pro": 7, "mem": 8, "brd": 6}, "wordblast.io": {"fit": 5, "pro": 9, "mem": 7, "brd": 5}}`
 
 export async function scoreFitBatch(domains, context, apiKey, fitPrompt) {
   if (!domains.length || !context.trim()) return {}
@@ -130,10 +129,16 @@ export async function scoreFitBatch(domains, context, apiKey, fitPrompt) {
   const jsonMatch = text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) return {}
   try {
-    const scores = JSON.parse(jsonMatch[0])
+    const raw = JSON.parse(jsonMatch[0])
     const result = {}
-    for (const [domain, score] of Object.entries(scores)) {
-      result[domain] = Math.min(10, Math.max(0, Math.round(Number(score))))
+    const clamp = v => Math.min(10, Math.max(0, Math.round(Number(v ?? 5))))
+    for (const [domain, val] of Object.entries(raw)) {
+      if (val !== null && typeof val === 'object') {
+        result[domain] = { fit: clamp(val.fit), pro: clamp(val.pro), mem: clamp(val.mem), brd: clamp(val.brd) }
+      } else {
+        // Legacy format: just a FIT number
+        result[domain] = { fit: clamp(val), pro: null, mem: null, brd: null }
+      }
     }
     return result
   } catch {

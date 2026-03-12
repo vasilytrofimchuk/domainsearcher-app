@@ -1,6 +1,6 @@
-import { db, saveSetting, loadSetting } from './storage.js?v=7'
-import { checkDomainAvailable, checkMultipleZones } from './check.js?v=7'
-import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=7'
+import { db, saveSetting, loadSetting } from './storage.js?v=8'
+import { checkDomainAvailable, checkMultipleZones } from './check.js?v=8'
+import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=8'
 
 // Active search controller
 let _abortController = null
@@ -413,13 +413,14 @@ function getWeights() {
   return { len: n('wLen'), pro: n('wPro'), mem: n('wMem'), brd: n('wBrd'), zon: n('wZon'), fit: n('wFit') }
 }
 
-function scoreDomain(name, zones, fit) {
+function scoreDomain(name, zones, aiScores) {
   const len = scoreLength(name)
-  const pro = scorePronounceable(name)
-  const mem = scoreMemorability(name)
-  const brd = scoreBrandability(name)
+  // PRO/MEM/BRD: use AI scores when available, fall back to computed
+  const pro = aiScores?.pro ?? scorePronounceable(name)
+  const mem = aiScores?.mem ?? scoreMemorability(name)
+  const brd = aiScores?.brd ?? scoreBrandability(name)
   const zon = scoreZones(zones)
-  const f = fit ?? 0
+  const f = aiScores?.fit ?? 0
   const w = getWeights()
   const total = Math.round(len * w.len + pro * w.pro + mem * w.mem + brd * w.brd + zon * w.zon + f * w.fit)
   const maxTotal = (w.len + w.pro + w.mem + w.brd + w.zon + w.fit) * 10
@@ -577,7 +578,9 @@ async function loadFavData(favorites) {
   // Load all data from DB into in-memory caches (don't overwrite existing in-memory cache)
   for (const d of favorites) {
     if (!zoneCache[d.id]) zoneCache[d.id] = d.zones ? JSON.parse(d.zones) : {}
-    if (fitCache[d.id] == null && d.fitScore != null) fitCache[d.id] = d.fitScore
+    if (fitCache[d.id] == null && (d.fitScore != null || d.proScore != null)) {
+      fitCache[d.id] = { fit: d.fitScore ?? null, pro: d.proScore ?? null, mem: d.memScore ?? null, brd: d.brdScore ?? null }
+    }
     if (assocCache[d.id] == null && d.association) {
       try { assocCache[d.id] = JSON.parse(d.association) } catch { assocCache[d.id] = [d.association] }
     }
@@ -621,7 +624,7 @@ async function loadFavData(favorites) {
   }
   if (needZonesFetch.length) renderScores(favorites)
 
-  // Fit scores: only for new favorites without a score
+  // AI scores (FIT+PRO+MEM+BRD): only for new favorites without scores
   const fitContext = fitInput.value.trim()
   const needFit = newFavs.filter(d => fitCache[d.id] == null)
   if (needFit.length && fitContext) {
@@ -629,9 +632,9 @@ async function loadFavData(favorites) {
       const scores = await scoreFitBatch(needFit.map(d => d.domain), fitContext, aiKey)
       for (const d of needFit) {
         if (scores[d.domain] !== undefined) {
-          const fitScore = Math.min(10, Math.max(0, Math.round(scores[d.domain])))
-          fitCache[d.id] = fitScore
-          db.update(d.id, { fitScore })
+          const s = scores[d.domain]
+          fitCache[d.id] = s
+          db.update(d.id, { fitScore: s.fit, proScore: s.pro ?? null, memScore: s.mem ?? null, brdScore: s.brd ?? null })
         }
       }
       renderScores(favorites)
@@ -717,8 +720,8 @@ function renderScores(favorites) {
   const scored = favorites.map(d => {
     const name = d.domain.replace(/\.[a-z]+$/, '')
     const zones = zoneCache[d.id] || null
-    const fit = fitCache[d.id] ?? null
-    const scores = scoreDomain(name, zones, fit)
+    const aiScores = fitCache[d.id] ?? null
+    const scores = scoreDomain(name, zones, aiScores)
     return { id: d.id, domain: d.domain, name, scores, superFavorite: d.superFavorite, available: d.available }
   })
   scored.sort((a, b) => {
@@ -754,15 +757,15 @@ async function rescoreFit() {
     const scores = await scoreFitBatch(favorites.map(d => d.domain), context, aiKey, fitPrompt)
     for (const d of favorites) {
       if (scores[d.domain] !== undefined) {
-        const fitScore = Math.min(10, Math.max(0, Math.round(scores[d.domain])))
-        fitCache[d.id] = fitScore
-        db.update(d.id, { fitScore })
+        const s = scores[d.domain]
+        fitCache[d.id] = s
+        db.update(d.id, { fitScore: s.fit, proScore: s.pro ?? null, memScore: s.mem ?? null, brdScore: s.brd ?? null })
       }
     }
     renderScores(favorites)
     if (typeof gtag !== 'undefined') gtag('event', 'fit_scored')
   } catch (e) {
-    console.error('FIT re-score failed', e)
+    console.error('AI re-score failed', e)
   }
   btn.textContent = origText
   btn.disabled = false
@@ -1186,10 +1189,14 @@ function saveAssocPrompt(showConfirm) {
 let _savedFitPromptValue = ''
 function loadFitPrompt() {
   const val = loadSetting('fitPrompt')
-  _savedFitPromptValue = val || DEFAULT_FIT_PROMPT
-  document.getElementById('fitPromptBox').value = _savedFitPromptValue
-  document.getElementById('fitPromptBox').addEventListener('input', () => {
-    const changed = document.getElementById('fitPromptBox').value !== _savedFitPromptValue
+  // Auto-upgrade: old prompt only scored FIT (no PRO/MEM/BRD)
+  const isOldFormat = val && !val.includes('PRO:')
+  _savedFitPromptValue = (val && !isOldFormat) ? val : DEFAULT_FIT_PROMPT
+  if (isOldFormat) saveSetting('fitPrompt', DEFAULT_FIT_PROMPT)
+  const box = document.getElementById('fitPromptBox')
+  box.value = _savedFitPromptValue
+  box.addEventListener('input', () => {
+    const changed = box.value !== _savedFitPromptValue
     document.getElementById('saveFitPromptBtn').classList.toggle('hidden', !changed)
   })
 }
