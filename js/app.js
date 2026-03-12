@@ -1108,7 +1108,10 @@ function loadWeights() {
 let _savedPromptValue = ''
 function loadGenPrompt() {
   const val = loadSetting('genPrompt')
-  _savedPromptValue = val || DEFAULT_SYSTEM_PROMPT
+  // If saved prompt is the old default (before STEP 1/STEP 2 rewrite), replace with new default
+  const isOldDefault = val && val.startsWith('You are a creative domain name generator.')
+  _savedPromptValue = (val && !isOldDefault) ? val : DEFAULT_SYSTEM_PROMPT
+  if (isOldDefault) saveSetting('genPrompt', null)
   document.getElementById('promptBox').value = _savedPromptValue
   document.getElementById('promptBox').addEventListener('input', () => {
     const changed = document.getElementById('promptBox').value !== _savedPromptValue
