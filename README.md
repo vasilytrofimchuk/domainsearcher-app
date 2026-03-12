@@ -11,6 +11,8 @@ Describe your startup idea → get 60 creative, brandable domain name candidates
 
 **Live site:** https://domainsearcher.app
 
+![Screenshot](screenshot.png)
+
 ## What it does
 
 Most domain tools stop at availability. This one helps you **decide**. Every candidate is scored across five dimensions, weighted by you, so you can rank names objectively rather than going with gut feeling:
