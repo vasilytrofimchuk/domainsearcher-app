@@ -649,19 +649,24 @@ async function loadFavData(favorites) {
 async function refreshZones() {
   const favorites = window._lastFavorites
   if (!favorites?.length) return
+  const btn = document.querySelector('button[onclick="refreshZones()"]')
+  if (btn) { btn.textContent = '⏳'; btn.style.opacity = '1'; btn.disabled = true }
   const compareZones = getCompareZones()
   for (const d of favorites) {
     const name = d.domain.replace(/\.[a-z]+$/, '')
     const el = document.getElementById('zones-' + d.id)
-    if (!el) continue
+    if (el) el.innerHTML = '<span class="text-gray-300 text-xs">checking...</span>'
     try {
       const zones = await checkMultipleZones(name, compareZones)
       zoneCache[d.id] = { ...zoneCache[d.id], ...zones }
       db.update(d.id, { zones: JSON.stringify(zoneCache[d.id]) })
-      renderZonePills(el, zoneCache[d.id], compareZones, name)
-    } catch {}
+      if (el) renderZonePills(el, zoneCache[d.id], compareZones, name)
+    } catch {
+      if (el) el.innerHTML = '<span class="text-gray-300 text-xs">failed</span>'
+    }
   }
   renderScores(favorites)
+  if (btn) { btn.innerHTML = '&#x21bb;'; btn.style.opacity = '0.6'; btn.disabled = false }
 }
 
 async function refreshAssociations() {
