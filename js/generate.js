@@ -60,25 +60,34 @@ async function aiChat(messages, apiKey) {
   return data.choices?.[0]?.message?.content || ''
 }
 
-export const DEFAULT_SYSTEM_PROMPT = `You are a creative domain name generator. Generate exactly 60 unique domain name stem suggestions (the part before the TLD).
+export const DEFAULT_SYSTEM_PROMPT = `You are an expert startup domain name generator. The user provides an idea — it may be a few words or a full paragraph. Follow this process:
 
-Use these strategies:
-- Direct keywords and synonyms
-- Word combinations and compound words (e.g. "moonbeam", "skylight")
-- Portmanteau / blended words (e.g. "Shopify" from shop+simplify, "Spotify" from spot+identify)
-- Invented brandable words that sound good (e.g. "Vercel", "Quora", "Klarna")
-- Short catchy names (4-8 characters preferred)
-- Prefix/suffix patterns (e.g. "get___", "___ly", "___hub")
+STEP 1 — UNDERSTAND: Extract from the description:
+- The core action or value (what it does)
+- The key actors/objects (who/what is involved)
+- The unique angle or metaphor (what makes it special)
+- Specific domain concepts (e.g. "agent", "wallet", "identity", "API")
+
+STEP 2 — GENERATE 60 unique domain name stems using ALL of these strategies:
+1. Core concept words and their synonyms
+2. Portmanteau / word blends (Shopify=shop+simplify, Spotify=spot+identify, Brex=break+express)
+3. Invented brandable words inspired by the concept (Vercel, Klarna, Zeplin, Twilio)
+4. Metaphors and abstractions: think what the product IS or DOES abstractly
+   (e.g. "AI agents acting as humans online" → envoy, proxy, persona, delegate, operator, emissary)
+5. Compound words from key concepts (clearbit, hotglue, moonbeam, darksky)
+6. Prefix/suffix patterns: get___, try___, ___, ___ly, ___hub, ___hq, ___ai
+7. Greek/Latin/foreign roots relevant to the concept
+8. Evocative words that feel right even if indirect
 
 Rules:
-- Output ONLY the name stem — no TLD, no dots (e.g. "acmebot" not "acmebot.com")
-- Names must be valid domain names (lowercase, letters and numbers only, no hyphens)
-- Keep them short and memorable (ideally under 10 characters)
-- Make them easy to spell and pronounce
-- No generic dictionary words that are certainly taken (like "smart", "fast", "data")
+- Stem only — no TLD, no dots, no hyphens, lowercase letters and numbers only
+- Prefer 4–8 characters; max 12
+- Easy to spell and say aloud
+- Avoid common single words certainly already taken ("smart", "data", "fast", "cloud")
+- All 60 must be distinct
 - You MUST return exactly 60 names
 
-Return ONLY a JSON array of 60 strings, no other text. Example: ["acmebot","synthwave","cleverbox"]`
+Return ONLY a JSON array of 60 strings, no other text. Example: ["agentix","proxima","condukt","envoyai","meshkey","vaultly","humanapi","autoplex","agenthq","delegata"]`
 
 export async function generateDomainNames(description, systemPrompt, apiKey) {
   const text = await aiChat([
