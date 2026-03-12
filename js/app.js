@@ -1,6 +1,6 @@
-import { db, saveSetting, loadSetting } from './storage.js?v=14'
-import { checkDomainAvailable, checkMultipleZones } from './check.js?v=14'
-import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=14'
+import { db, saveSetting, loadSetting } from './storage.js?v=15'
+import { checkDomainAvailable, checkMultipleZones } from './check.js?v=15'
+import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=15'
 
 // Active search controller
 let _abortController = null
@@ -642,7 +642,7 @@ async function loadFavData(favorites) {
   }
 
   // Associations: only for new favorites without one
-  const assocPrompt = loadSetting('assocPrompt') || undefined
+  const assocPrompt = getAssocPrompt()
   const needAssoc = newFavs.filter(d => assocCache[d.id] == null)
   if (needAssoc.length) {
     try {
@@ -691,7 +691,7 @@ async function refreshAssociations() {
   const btn = document.querySelector('button[onclick="refreshAssociations()"]')
   if (btn) { btn.textContent = '⏳'; btn.style.opacity = '1'; btn.disabled = true }
   const aiKey = loadSetting('aiApiKey') || undefined
-  const assocPrompt = document.getElementById('assocPromptBox')?.value || loadSetting('assocPrompt') || undefined
+  const assocPrompt = getAssocPrompt()
   try {
     const assocs = await associateDomains(favorites.map(d => d.domain), aiKey, assocPrompt)
     const updated = Object.keys(assocs).length
@@ -1153,6 +1153,19 @@ function saveGenPrompt(showConfirm) {
 
 // --- Association prompt settings ---
 let _savedAssocPromptValue = ''
+
+function getAssocPrompt() {
+  const box = document.getElementById('assocPromptBox')
+  const val = box?.value || loadSetting('assocPrompt') || undefined
+  // Auto-save if textarea differs from last saved value
+  if (box && val && val !== _savedAssocPromptValue) {
+    _savedAssocPromptValue = val
+    saveSetting('assocPrompt', val)
+    document.getElementById('saveAssocPromptBtn')?.classList.add('hidden')
+  }
+  return val
+}
+
 function loadAssocPrompt() {
   const val = loadSetting('assocPrompt')
   _savedAssocPromptValue = val || DEFAULT_ASSOC_PROMPT
@@ -1177,6 +1190,12 @@ function saveAssocPrompt(showConfirm) {
     const el = document.getElementById('assocPromptSaved')
     el.classList.remove('hidden')
     setTimeout(() => el.classList.add('hidden'), 2000)
+  }
+  // Auto-refresh associations with new prompt
+  const favorites = window._lastFavorites
+  if (favorites?.length) {
+    assocCache = {}
+    refreshAssociations()
   }
 }
 
