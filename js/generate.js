@@ -141,13 +141,13 @@ export async function scoreFitBatch(domains, context, apiKey, fitPrompt) {
   }
 }
 
-export const DEFAULT_ASSOC_PROMPT = `For each domain name, write exactly 3 short word-associations (2-4 words each, lowercase, no punctuation).
+export const DEFAULT_ASSOC_PROMPT = `For each domain name, write exactly 3 word-associations (4-8 words each, lowercase, no punctuation).
 Consider both the stem AND the TLD when writing associations — the zone adds meaning (.ai = artificial intelligence, .io = developer tool / input-output, .app = mobile/web app, .dev = developer, .co = company, .so = social / solutions, .to = action/destination, .email = communication).
 Each association should capture a different angle: literal meaning, emotional feel, and use-case evocation.
 Be creative and specific — avoid generic words like "digital", "smart", "tech", "fast".
-Return ONLY valid JSON using the stem (part before the dot) as the key: {"stem": ["assoc1", "assoc2", "assoc3"], ...}
+Return ONLY valid JSON using the stem (part before the dot) as the key.
 Example input: nexus.io, lumo.ai
-Example output: {"nexus": ["dev hub connector", "invisible web thread", "links flow bridge"], "lumo": ["ai clarity engine", "spark of insight", "gentle guiding intelligence"]}`
+Example output: {"nexus": ["invisible web thread connecting developers worldwide", "hub where all your tools come together", "the central node of your engineering workflow"], "lumo": ["warm spark of clarity guiding your decisions", "artificial intelligence with a gentle human touch", "insight engine that lights the way forward"]}`
 
 export const DEFAULT_SYNONYM_PROMPT = `Given a domain name stem, return exactly 6 synonyms or semantically related words that would work as domain names (single lowercase words, no spaces; hyphens allowed for compound words).
 Vary the angle: include near-synonyms, evocative alternatives, and metaphorical variants.
