@@ -1,6 +1,6 @@
-import { db, saveSetting, loadSetting } from './storage.js?v=13'
-import { checkDomainAvailable, checkMultipleZones } from './check.js?v=13'
-import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=13'
+import { db, saveSetting, loadSetting } from './storage.js?v=14'
+import { checkDomainAvailable, checkMultipleZones } from './check.js?v=14'
+import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=14'
 
 // Active search controller
 let _abortController = null
@@ -1155,10 +1155,7 @@ function saveGenPrompt(showConfirm) {
 let _savedAssocPromptValue = ''
 function loadAssocPrompt() {
   const val = loadSetting('assocPrompt')
-  // Auto-upgrade: old prompts had placeholder examples like "assoc1","assoc2","assoc3"
-  const isOldFormat = val && val.includes('"assoc1"')
-  _savedAssocPromptValue = (val && !isOldFormat) ? val : DEFAULT_ASSOC_PROMPT
-  if (isOldFormat) saveSetting('assocPrompt', DEFAULT_ASSOC_PROMPT)
+  _savedAssocPromptValue = val || DEFAULT_ASSOC_PROMPT
   const box = document.getElementById('assocPromptBox')
   box.value = _savedAssocPromptValue
   box.addEventListener('input', () => {
