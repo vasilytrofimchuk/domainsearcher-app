@@ -142,12 +142,12 @@ export async function scoreFitBatch(domains, context, apiKey, fitPrompt) {
 }
 
 export const DEFAULT_ASSOC_PROMPT = `For each domain name, write exactly 3 word-associations (4-8 words each, lowercase, no punctuation).
-Consider both the stem AND the TLD when writing associations — the zone adds meaning (.ai = artificial intelligence, .io = developer tool / input-output, .app = mobile/web app, .dev = developer, .co = company, .so = social / solutions, .to = action/destination, .email = communication).
-Each association should capture a different angle: literal meaning, emotional feel, and use-case evocation.
+AT LEAST ONE association must directly reflect the TLD zone meaning: .ai = artificial intelligence or machine learning, .io = developer tool or input/output data flow, .app = mobile or web application for end users, .dev = tool built by or for developers, .co = company or startup, .so = social network or community, .to = destination or action, .com = general business or consumer product.
+Each association should capture a different angle: literal stem meaning, zone/TLD meaning, and emotional or use-case evocation.
 Be creative and specific — avoid generic words like "digital", "smart", "tech", "fast".
 Return ONLY valid JSON using the stem (part before the dot) as the key.
-Example input: nexus.io, lumo.ai
-Example output: {"nexus": ["invisible web thread connecting developers worldwide", "hub where all your tools come together", "the central node of your engineering workflow"], "lumo": ["warm spark of clarity guiding your decisions", "artificial intelligence with a gentle human touch", "insight engine that lights the way forward"]}`
+Example input: nexus.io, lumo.ai, flare.app
+Example output: {"nexus": ["invisible thread binding your entire developer stack", "input output hub routing data between microservices", "the central node where engineering workflows converge"], "lumo": ["machine learning engine that illuminates hidden patterns", "warm spark of artificial intelligence guiding decisions", "clarity through ai that lights the way forward"], "flare": ["mobile app that makes your brand impossible to ignore", "burst of visual energy right in your pocket", "end user experience designed to ignite engagement"]}`
 
 export const DEFAULT_SYNONYM_PROMPT = `Given a domain name stem, return exactly 6 synonyms or semantically related words that would work as domain names (single lowercase words, no spaces; hyphens allowed for compound words).
 Vary the angle: include near-synonyms, evocative alternatives, and metaphorical variants.

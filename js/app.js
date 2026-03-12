@@ -1152,9 +1152,8 @@ function saveGenPrompt(showConfirm) {
 let _savedAssocPromptValue = ''
 function loadAssocPrompt() {
   const val = loadSetting('assocPrompt')
-  // Auto-upgrade: old prompts had placeholder examples like "assoc1","assoc2","assoc3"
-  // which caused AI to ignore word-count instructions and produce short phrases
-  const isOldFormat = val && val.includes('"assoc1"')
+  // Auto-upgrade: old prompts lacked TLD-aware examples or had short placeholder examples
+  const isOldFormat = val && (val.includes('"assoc1"') || !val.includes('TLD'))
   _savedAssocPromptValue = (val && !isOldFormat) ? val : DEFAULT_ASSOC_PROMPT
   if (isOldFormat) saveSetting('assocPrompt', DEFAULT_ASSOC_PROMPT)
   const box = document.getElementById('assocPromptBox')
