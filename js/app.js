@@ -409,7 +409,7 @@ function scoreZones(zones) {
 }
 
 function getWeights() {
-  const n = id => { const el = document.getElementById(id); return el ? Math.max(0, parseFloat(el.value) || 0) : 1 }
+  const n = id => { const el = document.getElementById(id); if (!el) return 1; const v = parseFloat(el.value); return isNaN(v) ? 0 : Math.max(0, v) }
   return { len: n('wLen'), pro: n('wPro'), mem: n('wMem'), brd: n('wBrd'), zon: n('wZon'), fit: n('wFit') }
 }
 
@@ -1082,9 +1082,9 @@ function loadFitContext() {
 }
 
 function saveWeights() {
-  // Skip save if any field is mid-edit (empty string) — avoid overwriting with 0
-  const ids = ['wLen', 'wPro', 'wMem', 'wBrd', 'wZon', 'wFit']
-  if (ids.some(id => { const el = document.getElementById(id); return el && el.value === '' })) return
+  // Skip save if the active field is mid-edit (empty, not yet "0" or another value)
+  const active = document.activeElement
+  if (active && active.value === '' && ['wLen','wPro','wMem','wBrd','wZon','wFit'].includes(active.id)) return
   saveSetting('domainWeights', getWeights())
 }
 
