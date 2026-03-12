@@ -433,6 +433,11 @@ function scoreBar(val, max) {
     + '<div class="text-center text-xs font-mono" style="margin-top:1px;font-size:10px">' + val + '</div>'
 }
 
+function scoreCell(val, weight) {
+  if (weight === 0) return '<div style="text-align:center;color:#d1d5db;font-size:13px;line-height:2">—</div>'
+  return scoreBar(val, 10)
+}
+
 function zonePillsHTML(zones, filterZones, name) {
   const compareZones = filterZones || getCompareZones()
   const entries = compareZones.length
@@ -471,7 +476,13 @@ function scoreCard(s, rank) {
   const starBtn  = '<button onclick="toggleFav(\'' + id + '\')" title="Remove from favorites" style="font-size:20px;line-height:1;color:#fbbf24" onmouseover="this.style.color=\'#f59e0b\'" onmouseout="this.style.color=\'#fbbf24\'">&#9733;</button>'
   const delBtn   = '<button onclick="deleteDomain(\'' + id + '\',this)" title="Delete" style="font-size:15px;color:#d1d5db;padding:2px" onmouseover="this.style.color=\'#f87171\'" onmouseout="this.style.color=\'#d1d5db\'">&#x2715;</button>'
 
-  function miniBar(label, val) {
+  const w = getWeights()
+  function miniBar(label, val, weight) {
+    if (weight === 0) return '<div style="display:flex;align-items:center;gap:6px;min-width:0">'
+      + '<span style="font-size:10px;font-weight:700;color:#d1d5db;width:26px;flex-shrink:0">' + label + '</span>'
+      + '<div style="flex:1;background:#f3f4f6;border-radius:3px;height:6px;min-width:0"></div>'
+      + '<span style="font-size:13px;color:#d1d5db;width:14px;text-align:right">—</span>'
+      + '</div>'
     const pct = Math.round(val / 10 * 100)
     const color = pct >= 70 ? '#4ade80' : pct >= 40 ? '#facc15' : '#fca5a5'
     return '<div style="display:flex;align-items:center;gap:6px;min-width:0">'
@@ -501,9 +512,9 @@ function scoreCard(s, rank) {
       : '<div id="assoc-' + id + '" style="font-size:12px;color:#d1d5db">…</div>')
     // Score grid
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 12px">'
-    +   miniBar('LEN', scores.len) + miniBar('PRO', scores.pro)
-    +   miniBar('MEM', scores.mem) + miniBar('BRD', scores.brd)
-    +   miniBar('ZON', scores.zon) + miniBar('FIT', scores.fit)
+    +   miniBar('LEN', scores.len, w.len) + miniBar('PRO', scores.pro, w.pro)
+    +   miniBar('MEM', scores.mem, w.mem) + miniBar('BRD', scores.brd, w.brd)
+    +   miniBar('ZON', scores.zon, w.zon) + miniBar('FIT', scores.fit, w.fit)
     + '</div>'
     // Total
     + '<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">'
@@ -540,12 +551,14 @@ function scoreRow(s, rank) {
     + '<td class="px-2 py-2">'
     + '<div id="assoc-' + id + '" class="text-sm italic ' + (assoc ? 'text-gray-500' : 'text-gray-300') + '" style="line-height:1.35;white-space:normal">' + (assoc || '…') + '</div>'
     + '</td>'
-    + '<td class="py-2" style="width:52px">' + scoreBar(scores.len, 10) + '</td>'
-    + '<td class="py-2" style="width:52px">' + scoreBar(scores.pro, 10) + '</td>'
-    + '<td class="py-2" style="width:52px">' + scoreBar(scores.mem, 10) + '</td>'
-    + '<td class="py-2" style="width:52px">' + scoreBar(scores.brd, 10) + '</td>'
-    + '<td class="py-2" style="width:52px">' + scoreBar(scores.zon, 10) + '</td>'
-    + '<td class="py-2" style="width:52px">' + scoreBar(scores.fit, 10) + '</td>'
+    + (()=>{ const w = getWeights(); return ''
+    + '<td class="py-2" style="width:52px">' + scoreCell(scores.len, w.len) + '</td>'
+    + '<td class="py-2" style="width:52px">' + scoreCell(scores.pro, w.pro) + '</td>'
+    + '<td class="py-2" style="width:52px">' + scoreCell(scores.mem, w.mem) + '</td>'
+    + '<td class="py-2" style="width:52px">' + scoreCell(scores.brd, w.brd) + '</td>'
+    + '<td class="py-2" style="width:52px">' + scoreCell(scores.zon, w.zon) + '</td>'
+    + '<td class="py-2" style="width:52px">' + scoreCell(scores.fit, w.fit) + '</td>'
+    })()
     + '<td class="py-2 text-center" style="width:70px"><span class="font-bold text-base ' + totalColor + ' px-1.5 py-0.5 rounded">' + scores.total + '</span><div class="text-xs text-gray-400">/' + mx + '</div></td>'
     + '<td class="py-2" style="width:80px">' + scoreBar(scores.total, mx) + '</td>'
     + '<td class="px-2 py-2 text-center whitespace-nowrap" style="min-width:90px">'
