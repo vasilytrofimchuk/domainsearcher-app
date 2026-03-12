@@ -146,14 +146,14 @@ export async function scoreFitBatch(domains, context, apiKey, fitPrompt) {
   }
 }
 
-export const DEFAULT_ASSOC_PROMPT = `For each domain, write exactly 3 word-associations (3-5 words each, lowercase, no punctuation).
+export const DEFAULT_ASSOC_PROMPT = `For each domain, write exactly 5 word-associations (3-5 words each, lowercase, no punctuation).
 The associations MUST use the TLD hint provided in brackets after each domain name.
-Return ONLY valid JSON: {"stem": ["assoc1", "assoc2", "assoc3"], ...}
+Return ONLY valid JSON: {"stem": ["assoc1", "assoc2", "assoc3", "assoc4", "assoc5"], ...}
 Example input:
 nexus.io [.io = developer tool]
 lumo.ai [.ai = artificial intelligence]
 flare.app [.app = mobile/web app]
-Example output: {"nexus": ["dev hub connector", "developer routing layer", "links services together"], "lumo": ["ai clarity engine", "machine learning insight", "spark of intelligence"], "flare": ["mobile app igniter", "app that stands out", "ignite user engagement"]}`
+Example output: {"nexus": ["dev hub connector", "developer routing layer", "links services together", "api integration bridge", "backend data pipeline"], "lumo": ["ai clarity engine", "machine learning insight", "spark of intelligence", "neural network illuminator", "smart prediction platform"], "flare": ["mobile app igniter", "app that stands out", "ignite user engagement", "launch notification system", "viral growth catalyst"]}`
 
 export const DEFAULT_SYNONYM_PROMPT = `Given a domain name stem, return exactly 6 synonyms or semantically related words that would work as domain names (single lowercase words, no spaces; hyphens allowed for compound words).
 Vary the angle: include near-synonyms, evocative alternatives, and metaphorical variants.
