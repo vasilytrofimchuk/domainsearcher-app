@@ -141,13 +141,14 @@ export async function scoreFitBatch(domains, context, apiKey, fitPrompt) {
   }
 }
 
-export const DEFAULT_ASSOC_PROMPT = `For each domain name, write exactly 3 word-associations (4-8 words each, lowercase, no punctuation).
-AT LEAST ONE association must directly reflect the TLD zone meaning: .ai = artificial intelligence or machine learning, .io = developer tool or input/output data flow, .app = mobile or web application for end users, .dev = tool built by or for developers, .co = company or startup, .so = social network or community, .to = destination or action, .com = general business or consumer product.
-Each association should capture a different angle: literal stem meaning, zone/TLD meaning, and emotional or use-case evocation.
-Be creative and specific — avoid generic words like "digital", "smart", "tech", "fast".
-Return ONLY valid JSON using the stem (part before the dot) as the key.
-Example input: nexus.io, lumo.ai, flare.app
-Example output: {"nexus": ["invisible thread binding your entire developer stack", "input output hub routing data between microservices", "the central node where engineering workflows converge"], "lumo": ["machine learning engine that illuminates hidden patterns", "warm spark of artificial intelligence guiding decisions", "clarity through ai that lights the way forward"], "flare": ["mobile app that makes your brand impossible to ignore", "burst of visual energy right in your pocket", "end user experience designed to ignite engagement"]}`
+export const DEFAULT_ASSOC_PROMPT = `For each domain, write exactly 3 word-associations (3-5 words each, lowercase, no punctuation).
+The associations MUST use the TLD hint provided in brackets after each domain name.
+Return ONLY valid JSON: {"stem": ["assoc1", "assoc2", "assoc3"], ...}
+Example input:
+nexus.io [.io = developer tool]
+lumo.ai [.ai = artificial intelligence]
+flare.app [.app = mobile/web app]
+Example output: {"nexus": ["dev hub connector", "developer routing layer", "links services together"], "lumo": ["ai clarity engine", "machine learning insight", "spark of intelligence"], "flare": ["mobile app igniter", "app that stands out", "ignite user engagement"]}`
 
 export const DEFAULT_SYNONYM_PROMPT = `Given a domain name stem, return exactly 6 synonyms or semantically related words that would work as domain names (single lowercase words, no spaces; hyphens allowed for compound words).
 Vary the angle: include near-synonyms, evocative alternatives, and metaphorical variants.
@@ -166,15 +167,35 @@ export async function generateSynonyms(stem, apiKey, systemPrompt) {
   } catch { return [] }
 }
 
+const TLD_MEANINGS = {
+  ai: 'artificial intelligence / machine learning',
+  io: 'developer tool / input-output',
+  app: 'mobile or web application',
+  dev: 'developer tool or platform',
+  co: 'company or startup',
+  com: 'general business or product',
+  so: 'social network or community',
+  to: 'destination or action',
+  sh: 'command-line or developer tool',
+  run: 'execute or automate something',
+  email: 'email or communication',
+  link: 'URL shortener or connector',
+  ly: 'short or action-oriented brand',
+}
+
 export async function associateDomains(domains, apiKey, systemPrompt) {
   if (!domains.length) return {}
 
-  // Deduplicate stems
-  const stems = [...new Set(domains.map(d => d.replace(/\.[a-z]+$/, '')))]
+  // Annotate each domain with its TLD meaning so the AI cannot ignore it
+  const annotated = domains.map(d => {
+    const tld = d.split('.').pop()
+    const meaning = TLD_MEANINGS[tld]
+    return meaning ? `${d} [.${tld} = ${meaning}]` : d
+  })
 
   const text = await aiChat([
     { role: 'system', content: systemPrompt || DEFAULT_ASSOC_PROMPT },
-    { role: 'user', content: domains.join('\n') },
+    { role: 'user', content: annotated.join('\n') },
   ], apiKey)
 
   const jsonMatch = text.match(/\{[\s\S]*\}/)
