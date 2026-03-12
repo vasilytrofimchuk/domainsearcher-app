@@ -81,7 +81,7 @@ STEP 2 — GENERATE 60 unique domain name stems using ALL of these strategies:
 
 Rules:
 - Stem only — no TLD, no dots, no hyphens, lowercase letters and numbers only
-- Prefer 4–8 characters; max 12
+- Mix of lengths: some short (4–7 chars), some medium (8–11 chars), some longer compound words (12–15 chars) — real startups use all ranges (e.g. "stripe", "clearbit", "anthropic", "cloudflare", "digitalocean")
 - Easy to spell and say aloud
 - Avoid common single words certainly already taken ("smart", "data", "fast", "cloud")
 - All 60 must be distinct
