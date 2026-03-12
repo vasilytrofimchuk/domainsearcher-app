@@ -1,6 +1,6 @@
-import { db, saveSetting, loadSetting } from './storage.js?v=10'
-import { checkDomainAvailable, checkMultipleZones } from './check.js?v=10'
-import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=10'
+import { db, saveSetting, loadSetting } from './storage.js?v=11'
+import { checkDomainAvailable, checkMultipleZones } from './check.js?v=11'
+import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=11'
 
 // Active search controller
 let _abortController = null
@@ -1161,12 +1161,12 @@ function loadAssocPrompt() {
   if (isOldFormat) saveSetting('assocPrompt', DEFAULT_ASSOC_PROMPT)
   const box = document.getElementById('assocPromptBox')
   box.value = _savedAssocPromptValue
-  let _assocDebounce = null
   box.addEventListener('input', () => {
-    clearTimeout(_assocDebounce)
-    _assocDebounce = setTimeout(() => saveAssocPrompt(false), 800)
     const changed = box.value !== _savedAssocPromptValue
     document.getElementById('saveAssocPromptBtn').classList.toggle('hidden', !changed)
+  })
+  box.addEventListener('blur', () => {
+    if (box.value !== _savedAssocPromptValue) saveAssocPrompt(false)
   })
 }
 
