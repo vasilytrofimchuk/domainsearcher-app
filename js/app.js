@@ -1,6 +1,6 @@
-import { db, saveSetting, loadSetting } from './storage.js?v=5'
-import { checkDomainAvailable, checkMultipleZones } from './check.js?v=5'
-import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=5'
+import { db, saveSetting, loadSetting } from './storage.js?v=6'
+import { checkDomainAvailable, checkMultipleZones } from './check.js?v=6'
+import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=6'
 
 // Active search controller
 let _abortController = null
@@ -1152,10 +1152,18 @@ function saveGenPrompt(showConfirm) {
 let _savedAssocPromptValue = ''
 function loadAssocPrompt() {
   const val = loadSetting('assocPrompt')
-  _savedAssocPromptValue = val || DEFAULT_ASSOC_PROMPT
-  document.getElementById('assocPromptBox').value = _savedAssocPromptValue
-  document.getElementById('assocPromptBox').addEventListener('input', () => {
-    const changed = document.getElementById('assocPromptBox').value !== _savedAssocPromptValue
+  // Auto-upgrade: old prompts had placeholder examples like "assoc1","assoc2","assoc3"
+  // which caused AI to ignore word-count instructions and produce short phrases
+  const isOldFormat = val && val.includes('"assoc1"')
+  _savedAssocPromptValue = (val && !isOldFormat) ? val : DEFAULT_ASSOC_PROMPT
+  if (isOldFormat) saveSetting('assocPrompt', DEFAULT_ASSOC_PROMPT)
+  const box = document.getElementById('assocPromptBox')
+  box.value = _savedAssocPromptValue
+  let _assocDebounce = null
+  box.addEventListener('input', () => {
+    clearTimeout(_assocDebounce)
+    _assocDebounce = setTimeout(() => saveAssocPrompt(false), 800)
+    const changed = box.value !== _savedAssocPromptValue
     document.getElementById('saveAssocPromptBtn').classList.toggle('hidden', !changed)
   })
 }
