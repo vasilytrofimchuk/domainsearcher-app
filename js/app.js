@@ -1,6 +1,6 @@
-import { db, saveSetting, loadSetting } from './storage.js?v=6'
-import { checkDomainAvailable, checkMultipleZones } from './check.js?v=6'
-import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=6'
+import { db, saveSetting, loadSetting } from './storage.js?v=7'
+import { checkDomainAvailable, checkMultipleZones } from './check.js?v=7'
+import { generateDomainNames, scoreFitBatch, associateDomains, generateSynonyms, detectProvider, DEFAULT_SYSTEM_PROMPT, DEFAULT_ASSOC_PROMPT, DEFAULT_FIT_PROMPT, DEFAULT_SYNONYM_PROMPT } from './generate.js?v=7'
 
 // Active search controller
 let _abortController = null
