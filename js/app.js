@@ -882,14 +882,6 @@ async function promptSaveFavs() {
   const fitContext = document.getElementById('fitContext').value.trim()
   const set = db.createSet(name, fitContext || null)
   if (!set) { alert('No favorites to save'); return }
-  db.clearFavorites()
-  zoneCache = {}
-  fitCache = {}
-  assocCache = {}
-  _loadedFavIds.clear()
-  window._lastFavorites = []
-  document.getElementById('scoreSection').classList.add('hidden')
-  loadSaved()
   loadSets()
   if (typeof gtag !== 'undefined') gtag('event', 'favorite_saved')
 }
