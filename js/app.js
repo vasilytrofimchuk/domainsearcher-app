@@ -744,7 +744,7 @@ function renderScores(favorites) {
   if (!favorites) return
   window._lastFavorites = favorites
   const scoreSection = document.getElementById('scoreSection')
-  const scoreBody = document.getElementById('scoreBody')
+  const scoreBody = document.getElementById('scoreTableBody')
   if (!favorites.length) { scoreSection.classList.add('hidden'); return }
 
   const scored = favorites.map(d => {
@@ -916,26 +916,32 @@ async function promptSaveFavs() {
   if (typeof gtag !== 'undefined') gtag('event', 'favorite_saved')
 }
 
-function toggleSearchCollapse() {
-  const body = document.getElementById('searchFormBody')
-  const icon = document.getElementById('searchCollapseIcon')
+// Generic section collapse — works for any section with {name}Body and {name}CollapseIcon elements
+function toggleSectionCollapse(name) {
+  const body = document.getElementById(name + 'Body') || document.getElementById(name + 'FormBody')
+  const icon = document.getElementById(name + 'CollapseIcon')
+  if (!body) return
   const collapsed = body.classList.toggle('hidden')
-  icon.textContent = collapsed ? '▸' : '▾'
-  localStorage.setItem('searchCollapsed', collapsed ? '1' : '')
+  if (icon) icon.textContent = collapsed ? '▸' : '▾'
+  localStorage.setItem(name + 'Collapsed', collapsed ? '1' : '')
 }
 
-function toggleSetsCollapse() {
-  const list = document.getElementById('setsList')
-  const icon = document.getElementById('setsCollapseIcon')
-  const collapsed = list.classList.toggle('hidden')
-  icon.textContent = collapsed ? '▸' : '▾'
-  localStorage.setItem('setsCollapsed', collapsed ? '1' : '')
+function restoreSectionCollapse(name) {
+  if (!localStorage.getItem(name + 'Collapsed')) return
+  const body = document.getElementById(name + 'Body') || document.getElementById(name + 'FormBody')
+  const icon = document.getElementById(name + 'CollapseIcon')
+  if (body) body.classList.add('hidden')
+  if (icon) icon.textContent = '▸'
 }
+
+// Backwards-compatible aliases
+function toggleSearchCollapse() { toggleSectionCollapse('search') }
+function toggleSetsCollapse() { toggleSectionCollapse('sets') }
 
 function loadSets() {
   const sets = db.listSets()
   const section = document.getElementById('setsSection')
-  const list = document.getElementById('setsList')
+  const list = document.getElementById('setsBody')
   const grid = document.getElementById('row1Grid')
   if (!sets.length) {
     section.classList.add('hidden')
@@ -963,11 +969,7 @@ function loadSets() {
       + '</div>'
       + '</div>'
   }).join('')
-  // Restore collapsed state
-  if (localStorage.getItem('setsCollapsed')) {
-    list.classList.add('hidden')
-    document.getElementById('setsCollapseIcon').textContent = '▸'
-  }
+  restoreSectionCollapse('sets')
 }
 
 function restoreSet(id) {
@@ -1416,12 +1418,8 @@ loadDescription()
 loadSaved()
 checkActiveSearch()
 
-// Restore search section collapsed state
-if (localStorage.getItem('searchCollapsed')) {
-  document.getElementById('searchFormBody')?.classList.add('hidden')
-  const icon = document.getElementById('searchCollapseIcon')
-  if (icon) icon.textContent = '▸'
-}
+// Restore collapsed states
+;['search', 'score', 'saved', 'history'].forEach(restoreSectionCollapse)
 
 // Expose all functions called from inline onclick attributes
 Object.assign(window, {
@@ -1438,6 +1436,7 @@ Object.assign(window, {
   promptSaveFavs,
   restoreSet,
   deleteSet,
+  toggleSectionCollapse,
   toggleSetsCollapse,
   toggleSearchCollapse,
   exportData,
