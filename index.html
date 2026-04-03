@@ -229,14 +229,17 @@
       <div id="scoreSection" class="hidden">
         <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-purple-200">
           <div class="px-6 py-4 bg-purple-50 border-b border-purple-200">
-            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2 cursor-pointer select-none" onclick="toggleSectionCollapse('score')">
               <h2 class="text-lg font-bold text-purple-800">Favorites <span class="text-purple-500 font-normal text-base ml-1">(<span id="favCount">0</span>)</span></h2>
-              <div class="flex gap-2">
-                <button id="copyFavsBtn" onclick="copyFavDomains()" class="text-xs bg-gray-100 hover:bg-purple-100 text-gray-500 hover:text-purple-700 px-3 py-1.5 rounded-lg font-medium transition-colors">Copy</button>
-                <button onclick="clearFavoritesOnly()" class="text-xs bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 px-3 py-1.5 rounded-lg font-medium transition-colors">Clear</button>
-                <button onclick="promptSaveFavs()" class="text-xs bg-yellow-200 hover:bg-yellow-300 text-yellow-800 px-3 py-1.5 rounded-lg font-medium transition-colors">Save</button>
+              <div class="flex gap-2 items-center">
+                <button onclick="event.stopPropagation();copyFavDomains()" id="copyFavsBtn" class="text-xs bg-gray-100 hover:bg-purple-100 text-gray-500 hover:text-purple-700 px-3 py-1.5 rounded-lg font-medium transition-colors">Copy</button>
+                <button onclick="event.stopPropagation();clearFavoritesOnly()" class="text-xs bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 px-3 py-1.5 rounded-lg font-medium transition-colors">Clear</button>
+                <button onclick="event.stopPropagation();promptSaveFavs()" class="text-xs bg-yellow-200 hover:bg-yellow-300 text-yellow-800 px-3 py-1.5 rounded-lg font-medium transition-colors">Save</button>
+                <span id="scoreCollapseIcon" class="text-purple-400 text-sm ml-1">▾</span>
               </div>
             </div>
+          </div>
+          <div id="scoreBody">
             <div class="text-lg font-bold text-purple-800 hidden">Score Comparison</div>
               <div class="hidden sm:flex flex-wrap gap-x-5 gap-y-0.5 mt-1 text-xs text-purple-400">
                 <span><b class="text-purple-600">LEN</b> shorter name (5 chars = 10)</span>
@@ -320,9 +323,10 @@
                     <th class="px-2 py-2 text-center font-semibold" style="width:88px"></th>
                   </tr>
                 </thead>
-                <tbody id="scoreBody" class="divide-y divide-purple-50"></tbody>
+                <tbody id="scoreTableBody" class="divide-y divide-purple-50"></tbody>
               </table>
             </div>
+          </div>
           </div>
         </div>
 
@@ -333,37 +337,41 @@
         <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-amber-200">
           <div class="px-6 py-4 bg-amber-50 border-b border-amber-200 cursor-pointer select-none flex items-center justify-between" onclick="toggleSetsCollapse()">
             <h2 class="text-lg font-bold text-amber-800">Saved Favorite Sets</h2>
-            <span id="setsCollapseIcon" class="text-amber-500 text-2xl leading-none font-bold select-none">▾</span>
+            <span id="setsCollapseIcon" class="text-amber-400 text-sm">▾</span>
           </div>
-          <div id="setsList" class="divide-y divide-amber-50"></div>
+          <div id="setsBody" class="divide-y divide-amber-50"></div>
         </div>
       </div>
 
       <!-- ROW 4: Saved available — 3-column grid, full width -->
       <div id="savedSection" class="hidden">
         <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-green-200">
-          <div class="px-6 py-4 bg-green-50 border-b border-green-200 flex items-center justify-between">
-            <h2 class="text-lg font-bold text-green-800">Available Domains</h2>
-            <span class="text-green-600 font-bold text-lg"><span id="savedAvailCount">0</span></span>
+          <div class="px-6 py-4 bg-green-50 border-b border-green-200 flex items-center justify-between cursor-pointer select-none" onclick="toggleSectionCollapse('saved')">
+            <h2 class="text-lg font-bold text-green-800">Available Domains <span class="text-green-600 font-normal text-base ml-1">(<span id="savedAvailCount">0</span>)</span></h2>
+            <span id="savedCollapseIcon" class="text-green-400 text-sm">▾</span>
           </div>
-          <div id="savedAvailList" class="border-t border-green-100"></div>
-          <div id="savedAvailPager" class="flex items-center justify-center px-4 py-3 border-t border-green-100"></div>
+          <div id="savedBody">
+            <div id="savedAvailList" class="border-t border-green-100"></div>
+            <div id="savedAvailPager" class="flex items-center justify-center px-4 py-3 border-t border-green-100"></div>
+          </div>
         </div>
       </div>
 
       <!-- ROW 6: History (full width) -->
       <div id="historySection" class="hidden">
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 class="text-lg font-semibold">Search History</h2>
+          <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between cursor-pointer select-none" onclick="toggleSectionCollapse('history')">
+            <h2 class="text-lg font-semibold">Search History <span class="text-gray-400 font-normal text-base ml-1">(<span id="historyTotal">0</span> total)</span></h2>
             <div class="flex gap-4 items-center">
-              <button onclick="exportData()" class="text-xs text-cyan-500 hover:text-cyan-700">Export JSON</button>
-              <span class="text-sm text-gray-500"><span id="historyTotal">0</span> total</span>
-              <button onclick="clearHistory()" class="text-xs text-red-400 hover:text-red-600">Clear All</button>
+              <button onclick="event.stopPropagation();exportData()" class="text-xs text-cyan-500 hover:text-cyan-700">Export JSON</button>
+              <button onclick="event.stopPropagation();clearHistory()" class="text-xs text-red-400 hover:text-red-600">Clear All</button>
+              <span id="historyCollapseIcon" class="text-gray-400 text-sm ml-1">▾</span>
             </div>
           </div>
-          <div id="historyList" class="border-t border-gray-100"></div>
-          <div id="historyPager" class="flex items-center justify-center px-4 py-3 border-t border-gray-100"></div>
+          <div id="historyBody">
+            <div id="historyList" class="border-t border-gray-100"></div>
+            <div id="historyPager" class="flex items-center justify-center px-4 py-3 border-t border-gray-100"></div>
+          </div>
         </div>
       </div>
 
@@ -445,7 +453,7 @@
     </div>
   </footer>
 
-  <script type="module" src="js/app.js?v=19"></script>
+  <script type="module" src="js/app.js?v=20"></script>
   <script>
     // Fetch GitHub star count
     fetch('https://api.github.com/repos/vasilytrofimchuk/domainsearcher-app')
