@@ -53,21 +53,22 @@
     #historyList > div { border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; }
     @media (min-width: 640px)  { #savedAvailList, #historyList { grid-template-columns: repeat(3, 1fr); } }
     @media (min-width: 1024px) { #savedAvailList, #historyList { grid-template-columns: repeat(5, 1fr); } }
+    button:focus-visible, a:focus-visible { outline: 2px solid #06b6d4; outline-offset: 2px; border-radius: 4px; }
   </style>
 
   <div class="w-full max-w-[1800px] mx-auto px-4 lg:px-8 py-6">
     <!-- Header -->
     <div class="flex items-start justify-between mb-1">
       <h1 class="text-3xl font-bold">Startup Domain Search</h1>
-      <div class="flex items-center gap-2 mt-1">
-        <a href="https://github.com/vasilytrofimchuk/domainsearcher-app/issues/new?labels=bug&title=Bug:+" target="_blank" rel="noopener"
-          class="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 hover:border-red-300 hover:text-red-600 text-gray-500 text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
-          🐛 Report Bug
+      <div class="flex items-center gap-2 mt-1 shrink-0">
+        <a href="https://github.com/vasilytrofimchuk/domainsearcher-app/issues/new?labels=bug&title=Bug:+" target="_blank" rel="noopener" aria-label="Report Bug"
+          class="inline-flex items-center gap-1.5 px-2 sm:px-3 py-2 border border-gray-300 hover:border-red-300 hover:text-red-600 text-gray-500 text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
+          🐛 <span class="hidden sm:inline">Report Bug</span>
         </a>
-        <a href="https://github.com/vasilytrofimchuk/domainsearcher-app" target="_blank" rel="noopener"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
+        <a href="https://github.com/vasilytrofimchuk/domainsearcher-app" target="_blank" rel="noopener" aria-label="Star on GitHub"
+          class="inline-flex items-center gap-2 px-2 sm:px-4 py-2 bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
           <svg height="16" viewBox="0 0 16 16" width="16" fill="currentColor"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>
-          Star on GitHub
+          <span class="hidden sm:inline">Star on GitHub</span>
           <span id="ghStarsTop" class="bg-gray-700 text-gray-200 text-xs px-1.5 py-0.5 rounded hidden"></span>
         </a>
       </div>
@@ -444,7 +445,7 @@
     </div>
   </footer>
 
-  <script type="module" src="js/app.js?v=18"></script>
+  <script type="module" src="js/app.js?v=19"></script>
   <script>
     // Fetch GitHub star count
     fetch('https://api.github.com/repos/vasilytrofimchuk/domainsearcher-app')
