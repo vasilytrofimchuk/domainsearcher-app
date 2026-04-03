@@ -886,6 +886,14 @@ async function promptSaveFavs() {
   if (typeof gtag !== 'undefined') gtag('event', 'favorite_saved')
 }
 
+function toggleSetsCollapse() {
+  const list = document.getElementById('setsList')
+  const icon = document.getElementById('setsCollapseIcon')
+  const collapsed = list.classList.toggle('hidden')
+  icon.textContent = collapsed ? '▸' : '▾'
+  localStorage.setItem('setsCollapsed', collapsed ? '1' : '')
+}
+
 function loadSets() {
   const sets = db.listSets()
   const section = document.getElementById('setsSection')
@@ -917,6 +925,11 @@ function loadSets() {
       + '</div>'
       + '</div>'
   }).join('')
+  // Restore collapsed state
+  if (localStorage.getItem('setsCollapsed')) {
+    list.classList.add('hidden')
+    document.getElementById('setsCollapseIcon').textContent = '▸'
+  }
 }
 
 function restoreSet(id) {
@@ -1380,6 +1393,7 @@ Object.assign(window, {
   promptSaveFavs,
   restoreSet,
   deleteSet,
+  toggleSetsCollapse,
   exportData,
   rescoreFit,
   refreshZones,
