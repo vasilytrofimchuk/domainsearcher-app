@@ -234,7 +234,7 @@ function _domainCheckRow(domain, available, recordId, favorite) {
       ? '<span class="text-red-400 text-sm">Taken</span>'
       : '<span class="text-yellow-500 text-sm" title="Check failed — RDAP returned an unexpected response">? Unknown</span>'
   const nameClass = available === true ? 'text-green-700 font-semibold' : 'text-gray-400'
-  const favBtn = '<button onclick="toggleCheckFav(\'' + recordId + '\',this)" class="ml-2">' + starIcon(favorite) + '</button>'
+  const favBtn = '<button onclick="toggleCheckFav(\'' + recordId + '\',this)" class="ml-2" aria-label="' + (favorite ? 'Remove from favorites' : 'Add to favorites') + '">' + starIcon(favorite) + '</button>'
   const link = '<a href="https://' + domain + '" target="_blank" rel="noopener" class="font-mono ' + nameClass + ' hover:underline">' + domain + '</a>'
   return '<div class="flex items-center gap-3 py-1">' + link + badge + favBtn + '</div>'
 }
@@ -346,12 +346,12 @@ function domainRow(d, opts = {}) {
     : d.available === false
       ? '<span class="text-red-300 text-xs">✗</span>'
       : '<span class="text-yellow-500 text-xs" title="RDAP check inconclusive — short domains and some registries are unreliable">?</span>')
-  const star = '<button onclick="toggleFav(\'' + d.id + '\')">' + starIcon(d.favorite) + '</button>'
+  const star = '<button onclick="toggleFav(\'' + d.id + '\')" aria-label="' + (d.favorite ? 'Remove from favorites' : 'Add to favorites') + '">' + starIcon(d.favorite) + '</button>'
   const superStar = opts.showSuper
-    ? '<button onclick="toggleSuper(\'' + d.id + '\')" title="Super favorite">' + doubleStarIcon(d.superFavorite) + '</button>'
+    ? '<button onclick="toggleSuper(\'' + d.id + '\')" title="Super favorite" aria-label="Toggle super favorite">' + doubleStarIcon(d.superFavorite) + '</button>'
     : ''
   const del = opts.showDelete
-    ? '<button onclick="deleteDomain(\'' + d.id + '\',this)" class="text-gray-300 hover:text-red-400 text-xs ml-1">x</button>'
+    ? '<button onclick="deleteDomain(\'' + d.id + '\',this)" class="text-gray-300 hover:text-red-400 text-xs ml-1" aria-label="Remove domain">x</button>'
     : ''
   const desc = opts.showDesc && d.description
     ? '<span class="text-xs text-gray-400 ml-3">' + d.description.slice(0, 40) + '</span>'
@@ -503,9 +503,9 @@ function scoreCard(s, rank) {
   const pills = Object.keys(zones).length ? zonePillsHTML(zones, null, stem) : '<span style="color:#d1d5db;font-size:11px">checking zones…</span>'
   const assocRaw = assocCache[id]
   const assoc = Array.isArray(assocRaw) ? assocRaw.join(' · ') : (assocRaw || null)
-  const superBtn = '<button onclick="toggleSuper(\'' + id + '\')" title="Super favorite" style="font-size:18px;line-height:1;color:' + (isSuper ? '#f97316' : '#d1d5db') + '" onmouseover="this.style.color=\'#f97316\'" onmouseout="this.style.color=\'' + (isSuper ? '#f97316' : '#d1d5db') + '\'">&#9733;&#9733;</button>'
-  const starBtn  = '<button onclick="toggleFav(\'' + id + '\')" title="Remove from favorites" style="font-size:20px;line-height:1;color:#fbbf24" onmouseover="this.style.color=\'#f59e0b\'" onmouseout="this.style.color=\'#fbbf24\'">&#9733;</button>'
-  const delBtn   = '<button onclick="deleteDomain(\'' + id + '\',this)" title="Delete" style="font-size:15px;color:#d1d5db;padding:2px" onmouseover="this.style.color=\'#f87171\'" onmouseout="this.style.color=\'#d1d5db\'">&#x2715;</button>'
+  const superBtn = '<button onclick="toggleSuper(\'' + id + '\')" title="Super favorite" aria-label="Toggle super favorite" style="font-size:18px;line-height:1;color:' + (isSuper ? '#f97316' : '#d1d5db') + '" onmouseover="this.style.color=\'#f97316\'" onmouseout="this.style.color=\'' + (isSuper ? '#f97316' : '#d1d5db') + '\'">&#9733;&#9733;</button>'
+  const starBtn  = '<button onclick="toggleFav(\'' + id + '\')" title="Remove from favorites" aria-label="Remove from favorites" style="font-size:20px;line-height:1;color:#fbbf24" onmouseover="this.style.color=\'#f59e0b\'" onmouseout="this.style.color=\'#fbbf24\'">&#9733;</button>'
+  const delBtn   = '<button onclick="deleteDomain(\'' + id + '\',this)" title="Delete" aria-label="Remove domain" style="font-size:15px;color:#d1d5db;padding:2px" onmouseover="this.style.color=\'#f87171\'" onmouseout="this.style.color=\'#d1d5db\'">&#x2715;</button>'
 
   const w = getWeights()
   function miniBar(label, val, weight) {
@@ -567,9 +567,9 @@ function scoreRow(s, rank) {
   const zones = zoneCache[id] || {}
   const stem = domain.replace(/\.[a-z]+$/, '')
   const pills = Object.keys(zones).length ? zonePillsHTML(zones, null, stem) : '<span class="text-gray-300 text-xs">checking...</span>'
-  const superBtn = '<button onclick="toggleSuper(\'' + id + '\')" title="Super favorite" style="font-size:16px;line-height:1;color:' + (isSuper ? '#f97316' : '#d1d5db') + '" onmouseover="this.style.color=\'#f97316\'" onmouseout="this.style.color=\'' + (isSuper ? '#f97316' : '#d1d5db') + '\'">&#9733;&#9733;</button>'
-  const starBtn = '<button onclick="toggleFav(\'' + id + '\')" title="Remove from favorites" style="font-size:18px;line-height:1;color:#fbbf24" onmouseover="this.style.color=\'#f59e0b\'" onmouseout="this.style.color=\'#fbbf24\'">&#9733;</button>'
-  const delBtn = '<button onclick="deleteDomain(\'' + id + '\',this)" title="Delete" style="font-size:14px;font-weight:bold;color:#d1d5db" onmouseover="this.style.color=\'#f87171\'" onmouseout="this.style.color=\'#d1d5db\'">&#x2715;</button>'
+  const superBtn = '<button onclick="toggleSuper(\'' + id + '\')" title="Super favorite" aria-label="Toggle super favorite" style="font-size:16px;line-height:1;color:' + (isSuper ? '#f97316' : '#d1d5db') + '" onmouseover="this.style.color=\'#f97316\'" onmouseout="this.style.color=\'' + (isSuper ? '#f97316' : '#d1d5db') + '\'">&#9733;&#9733;</button>'
+  const starBtn = '<button onclick="toggleFav(\'' + id + '\')" title="Remove from favorites" aria-label="Remove from favorites" style="font-size:18px;line-height:1;color:#fbbf24" onmouseover="this.style.color=\'#f59e0b\'" onmouseout="this.style.color=\'#fbbf24\'">&#9733;</button>'
+  const delBtn = '<button onclick="deleteDomain(\'' + id + '\',this)" title="Delete" aria-label="Remove domain" style="font-size:14px;font-weight:bold;color:#d1d5db" onmouseover="this.style.color=\'#f87171\'" onmouseout="this.style.color=\'#d1d5db\'">&#x2715;</button>'
   const assocRaw = assocCache[id]
   const assoc = Array.isArray(assocRaw) ? assocRaw.join(' · ') : (assocRaw || null)
   return '<tr class="hover:bg-purple-25' + rowBg + '">'
