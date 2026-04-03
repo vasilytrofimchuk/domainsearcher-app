@@ -57,12 +57,40 @@ function toggleCompareZone(btn) {
   saveCompareZones()
 }
 
-function addCustomZone() {
+// Validate that a TLD exists by checking its SOA record via DNS-over-HTTPS
+async function validateTLD(zone, input) {
+  const prev = input.placeholder
+  input.placeholder = 'checking .' + zone + '...'
+  input.disabled = true
+  try {
+    const res = await fetch('https://cloudflare-dns.com/dns-query?name=' + zone + '&type=SOA', {
+      headers: { Accept: 'application/dns-json' },
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) return true // can't verify, allow it
+    const data = await res.json()
+    if (data.Status === 3) { // NXDOMAIN — TLD doesn't exist
+      input.value = ''
+      input.placeholder = '.' + zone + ' is not a real TLD'
+      setTimeout(() => { input.placeholder = prev }, 2000)
+      return false
+    }
+    return true
+  } catch {
+    return true // network error, allow it
+  } finally {
+    input.disabled = false
+    if (input.placeholder === 'checking .' + zone + '...') input.placeholder = prev
+  }
+}
+
+async function addCustomZone() {
   const input = document.getElementById('customZone')
   const zone = input.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
   if (!zone) return
   const existing = document.querySelector('#zoneSelector [data-zone="' + zone + '"]')
   if (existing) { toggleSearchZone(existing); input.value = ''; return }
+  if (!await validateTLD(zone, input)) return
   const btn = document.createElement('button')
   btn.onclick = function(e) { if (!e.target.classList.contains('zone-x')) toggleSearchZone(this) }
   btn.dataset.zone = zone
@@ -74,12 +102,13 @@ function addCustomZone() {
   saveSearchZones()
 }
 
-function addCustomCompareZone() {
+async function addCustomCompareZone() {
   const input = document.getElementById('customCompareZone')
   const zone = input.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
   if (!zone) return
   const existing = document.querySelector('#compareZoneSelector [data-zone="' + zone + '"]')
   if (existing) { existing.classList.add('zone-compare-active'); input.value = ''; return }
+  if (!await validateTLD(zone, input)) return
   const btn = document.createElement('button')
   btn.onclick = function(e) { if (!e.target.classList.contains('zone-x')) toggleCompareZone(this) }
   btn.dataset.zone = zone
@@ -180,12 +209,13 @@ function toggleCheckZone(btn) {
   saveCheckZones()
 }
 
-function addCustomCheckZone() {
+async function addCustomCheckZone() {
   const input = document.getElementById('customCheckZone')
   const zone = input.value.trim().toLowerCase().replace(/^\./, '').replace(/[^a-z0-9]/g, '')
   if (!zone) return
   const container = document.getElementById('checkZoneSelector')
   if ([...container.querySelectorAll('.zone-tag')].some(b => b.dataset.zone === zone)) { input.value = ''; return }
+  if (!await validateTLD(zone, input)) return
   const btn = document.createElement('button')
   btn.dataset.zone = zone
   btn.onclick = function() { toggleCheckZone(this) }
