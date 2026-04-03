@@ -916,6 +916,14 @@ async function promptSaveFavs() {
   if (typeof gtag !== 'undefined') gtag('event', 'favorite_saved')
 }
 
+function toggleSearchCollapse() {
+  const body = document.getElementById('searchFormBody')
+  const icon = document.getElementById('searchCollapseIcon')
+  const collapsed = body.classList.toggle('hidden')
+  icon.textContent = collapsed ? '▸' : '▾'
+  localStorage.setItem('searchCollapsed', collapsed ? '1' : '')
+}
+
 function toggleSetsCollapse() {
   const list = document.getElementById('setsList')
   const icon = document.getElementById('setsCollapseIcon')
@@ -1408,6 +1416,13 @@ loadDescription()
 loadSaved()
 checkActiveSearch()
 
+// Restore search section collapsed state
+if (localStorage.getItem('searchCollapsed')) {
+  document.getElementById('searchFormBody')?.classList.add('hidden')
+  const icon = document.getElementById('searchCollapseIcon')
+  if (icon) icon.textContent = '▸'
+}
+
 // Expose all functions called from inline onclick attributes
 Object.assign(window, {
   toggleFav,
@@ -1424,6 +1439,7 @@ Object.assign(window, {
   restoreSet,
   deleteSet,
   toggleSetsCollapse,
+  toggleSearchCollapse,
   exportData,
   rescoreFit,
   refreshZones,
