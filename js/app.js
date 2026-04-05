@@ -260,6 +260,7 @@ async function checkOne() {
   resultDiv.innerHTML = '<span class="text-gray-400 text-sm">Checking ' + name + (zones.length > 1 ? ' across ' + zones.length + ' zones' : '.' + zones[0]) + '...</span>'
 
   if (typeof gtag !== 'undefined') gtag('event', 'quick_check', { domain_stem: name })
+  if (window.__tracker) window.__tracker.event('quick_check', { domain_stem: name })
 
   // Check the original name
   let html = ''
@@ -794,6 +795,7 @@ async function rescoreFit() {
     }
     renderScores(favorites)
     if (typeof gtag !== 'undefined') gtag('event', 'fit_scored')
+    if (window.__tracker) window.__tracker.event('fit_scored')
   } catch (e) {
     console.error('AI re-score failed', e)
   }
@@ -914,6 +916,7 @@ async function promptSaveFavs() {
   if (!set) { alert('No favorites to save'); return }
   loadSets()
   if (typeof gtag !== 'undefined') gtag('event', 'favorite_saved')
+  if (window.__tracker) window.__tracker.event('favorite_saved')
 }
 
 // Generic section collapse — works for any section with {name}Body and {name}CollapseIcon elements
@@ -1022,6 +1025,7 @@ async function startSearch() {
   document.getElementById('resumeBanner').classList.add('hidden')
 
   if (typeof gtag !== 'undefined') gtag('event', 'search_started', { zones: zones.join(',') })
+  if (window.__tracker) window.__tracker.event('search_started', { zones: zones.join(',') })
 
   try {
     document.getElementById('statusMsg').textContent = 'Generating domain name ideas...'
@@ -1058,6 +1062,7 @@ async function startSearch() {
         const record = db.upsert(domain, { domain, available, description: desc }, { available, description: desc })
 
         if (typeof gtag !== 'undefined' && available === true) gtag('event', 'domain_available', { domain })
+        if (window.__tracker && available === true) window.__tracker.event('domain_available', { domain })
 
         // Append to history
         const historySection = document.getElementById('historySection')
