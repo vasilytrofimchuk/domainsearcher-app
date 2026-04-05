@@ -85,7 +85,9 @@
       <span class="text-base">🌐</span>
       <span><strong class="text-gray-700">Open source.</strong> <a href="https://github.com/vasilytrofimchuk/domainsearcher-app" target="_blank" rel="noopener" class="text-cyan-600 hover:underline">View code on GitHub</a></span>
     </div>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-sm">
+    <div id="howItWorks" class="relative grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 text-sm">
+      <button onclick="document.getElementById('howItWorks').remove();localStorage.setItem('hideHowItWorks','1')"
+        class="absolute -top-1 -right-1 w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 text-gray-500 hover:text-gray-700 text-xs leading-none transition-colors z-10" aria-label="Dismiss">&times;</button>
       <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg px-4 py-3">
         <span class="text-lg leading-none mt-0.5">1.</span>
         <div><span class="font-semibold text-gray-800">Describe your idea</span><br><span class="text-gray-500">AI generates 60 brandable domain candidates</span></div>
@@ -99,10 +101,7 @@
         <div><span class="font-semibold text-gray-800">Score &amp; rank</span><br><span class="text-gray-500">Pick the winner by memorability, brandability &amp; fit</span></div>
       </div>
     </div>
-    <div class="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 mb-6">
-      <span class="text-base">💡</span>
-      <span>Run a search, <span class="font-medium">★ star</span> the domains you like, then scroll down to <span class="font-medium">score &amp; compare</span> them.</span>
-    </div>
+    <script>if(localStorage.getItem('hideHowItWorks'))document.getElementById('howItWorks')?.remove()</script>
 
     <div class="flex flex-col gap-6">
 
