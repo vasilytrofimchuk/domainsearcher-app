@@ -246,15 +246,13 @@
       <!-- ROW 2: Favorites + Scores (combined full-width) -->
       <div id="scoreSection" class="hidden">
         <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-purple-200">
-          <div class="px-6 py-4 bg-purple-50 border-b border-purple-200">
-            <div class="flex flex-wrap items-center justify-between gap-2 mb-2 cursor-pointer select-none" onclick="toggleSectionCollapse('score')">
-              <h2 class="text-lg font-bold text-purple-800">Favorites <span class="text-purple-500 font-normal text-base ml-1">(<span id="favCount">0</span>)</span></h2>
-              <div class="flex gap-2 items-center">
-                <button onclick="event.stopPropagation();copyFavDomains()" id="copyFavsBtn" class="text-xs bg-gray-100 hover:bg-purple-100 text-gray-500 hover:text-purple-700 px-3 py-1.5 rounded-lg font-medium transition-colors">Copy</button>
-                <button onclick="event.stopPropagation();clearFavoritesOnly()" class="text-xs bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 px-3 py-1.5 rounded-lg font-medium transition-colors">Clear</button>
-                <button onclick="event.stopPropagation();promptSaveFavs()" class="text-xs bg-yellow-200 hover:bg-yellow-300 text-yellow-800 px-3 py-1.5 rounded-lg font-medium transition-colors">Save</button>
-                <span id="scoreCollapseIcon" class="text-purple-400 text-sm ml-1">▾</span>
-              </div>
+          <div class="px-6 py-4 bg-purple-50 border-b border-purple-200 cursor-pointer select-none flex items-center justify-between" onclick="toggleSectionCollapse('score')">
+            <h2 class="text-lg font-bold text-purple-800">Favorites <span class="text-purple-500 font-normal text-base ml-1">(<span id="favCount">0</span>)</span></h2>
+            <div class="flex gap-2 items-center">
+              <button onclick="event.stopPropagation();copyFavDomains()" id="copyFavsBtn" class="text-xs bg-gray-100 hover:bg-purple-100 text-gray-500 hover:text-purple-700 px-3 py-1.5 rounded-lg font-medium transition-colors">Copy</button>
+              <button onclick="event.stopPropagation();clearFavoritesOnly()" class="text-xs bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 px-3 py-1.5 rounded-lg font-medium transition-colors">Clear</button>
+              <button onclick="event.stopPropagation();promptSaveFavs()" class="text-xs bg-yellow-200 hover:bg-yellow-300 text-yellow-800 px-3 py-1.5 rounded-lg font-medium transition-colors">Save</button>
+              <span id="scoreCollapseIcon" class="text-purple-400 text-2xl leading-none font-bold select-none ml-2">▾</span>
             </div>
           </div>
           <div id="scoreBody">
@@ -355,7 +353,7 @@
         <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-amber-200">
           <div class="px-6 py-4 bg-amber-50 border-b border-amber-200 cursor-pointer select-none flex items-center justify-between" onclick="toggleSetsCollapse()">
             <h2 class="text-lg font-bold text-amber-800">Saved Favorite Sets</h2>
-            <span id="setsCollapseIcon" class="text-amber-400 text-sm">▾</span>
+            <span id="setsCollapseIcon" class="text-amber-400 text-2xl leading-none font-bold select-none">▾</span>
           </div>
           <div id="setsBody" class="divide-y divide-amber-50"></div>
         </div>
@@ -366,7 +364,7 @@
         <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-green-200">
           <div class="px-6 py-4 bg-green-50 border-b border-green-200 flex items-center justify-between cursor-pointer select-none" onclick="toggleSectionCollapse('saved')">
             <h2 class="text-lg font-bold text-green-800">Available Domains <span class="text-green-600 font-normal text-base ml-1">(<span id="savedAvailCount">0</span>)</span></h2>
-            <span id="savedCollapseIcon" class="text-green-400 text-sm">▾</span>
+            <span id="savedCollapseIcon" class="text-green-400 text-2xl leading-none font-bold select-none">▾</span>
           </div>
           <div id="savedBody">
             <div id="savedAvailList" class="border-t border-green-100"></div>
@@ -383,7 +381,7 @@
             <div class="flex gap-4 items-center">
               <button onclick="event.stopPropagation();exportData()" class="text-xs text-cyan-500 hover:text-cyan-700">Export JSON</button>
               <button onclick="event.stopPropagation();clearHistory()" class="text-xs text-red-400 hover:text-red-600">Clear All</button>
-              <span id="historyCollapseIcon" class="text-gray-400 text-sm ml-1">▾</span>
+              <span id="historyCollapseIcon" class="text-gray-400 text-2xl leading-none font-bold select-none ml-1">▾</span>
             </div>
           </div>
           <div id="historyBody">
