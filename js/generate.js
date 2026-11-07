@@ -1,12 +1,12 @@
-// Bundled API key — XOR-encoded at build time so GitHub secret scanning won't flag it
-// deploy.yml encodes: each char XOR 42, joined by commas → decoded here at runtime
-function _dk(s) { return s.split(',').map(c => String.fromCharCode(parseInt(c) ^ 42)).join('') }
-export const BUNDLED_API_KEY = _dk('77,89,65,117,73,120,83,89,98,26,73,73,28,79,99,65,100,18,114,112,103,105,115,64,125,109,78,83,72,25,108,115,31,104,122,95,95,70,75,92,82,78,80,78,105,121,97,121,75,102,31,102,95,28,31,88')
+// No shared key (06.11.2026): a key shipped in a public page is anyone's key. Each visitor uses their own
+// Groq, OpenAI or Anthropic key, kept only in their browser.
+export const BUNDLED_API_KEY = ''
+const NO_KEY = 'Add your own AI key (Groq, OpenAI or Anthropic) in the AI provider field — it stays in your browser. Groq keys are free at console.groq.com.'
 const BUNDLED_BASE_URL = 'https://api.groq.com/openai/v1'
 const BUNDLED_MODEL = 'llama-3.3-70b-versatile'
 
 export function detectProvider(key) {
-  if (!key) return 'Groq (default)'
+  if (!key) return 'none'
   if (key.startsWith('sk-ant-')) return 'Claude (Anthropic)'
   if (key.startsWith('sk-')) return 'OpenAI'
   if (key.startsWith('gsk_')) return 'Groq'
@@ -15,6 +15,7 @@ export function detectProvider(key) {
 
 async function aiChat(messages, apiKey) {
   const key = apiKey || BUNDLED_API_KEY
+  if (!key) throw new Error(NO_KEY)
   const provider = detectProvider(key)
 
   if (provider === 'Claude (Anthropic)') {

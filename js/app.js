@@ -1350,7 +1350,7 @@ function _updateProviderBadge(key) {
   const badge = document.getElementById('aiProviderBadge')
   const addBtn = document.getElementById('addKeyBtn')
   const hasCustomKey = key && key.length > 0
-  const providerName = hasCustomKey ? detectProvider(key) : 'Groq'
+  const providerName = hasCustomKey ? detectProvider(key) : 'no key yet'
   label.textContent = providerName
   if (hasCustomKey) {
     badge.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200'
